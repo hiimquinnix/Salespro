@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "421368527170",
+    "project_id": "salespro-66aed",
+    "storage_bucket": "salespro-66aed.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421368527170:android:314b38cb7f4bb0270930db",
+        "android_client_info": {
+          "package_name": "com.example.salespro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJYWga1yu-pFieh2xo2foo1HCtptxr-N4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
