@@ -4,12 +4,11 @@ import 'package:salespro/pages/items.dart';
 import 'package:salespro/login.dart';
 import 'package:salespro/pages/items_page.dart';
 import 'package:salespro/pages/main_pages.dart';
-import 'package:salespro/pages/open_shift.dart';
 import 'package:flutter/material.dart';
 import 'package:salespro/pages/home_page.dart';
 import 'package:salespro/pages/receipts_page.dart';
 
-void main() async {
+void main() async { // si main .dart lang always may ganito sorry boss no idea talaga baguhan haha
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase based on the platform (web or non-web)
@@ -38,18 +37,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const MainPages(),
+      home: MainPages(),
       routes: {
         // Routes for navigation
-        '/login': (context) => LoginPage(showRegisterPage: () {  },),
+        '/login': (context) => LoginPage(
+              showRegisterPage: () {},
+            ),
         '/salespage': (context) => const HomePage(),
         '/receiptpage': (context) => const ReceiptsPage(),
-        '/shiftpage': (context) => const ShiftPage(),
         '/itemspage': (context) => const ItemsPage(),
         '/items': (context) => Items(
               updateCategories: (List<String> newCategories) {},
             ),
-          
       },
     );
   }

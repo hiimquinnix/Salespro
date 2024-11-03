@@ -4,7 +4,7 @@ import 'package:salespro/pages/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
-  const LoginPage({Key? key,required this.showRegisterPage}) : super(key: key);
+  const LoginPage({Key? key, required this.showRegisterPage}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,11 +20,19 @@ class _LoginPageState extends State<LoginPage> {
 
   // Function to sign in using Firebase Authentication
   Future<void> signIn() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Center(child: CircularProgressIndicator());
+      },
+    );
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _usernameController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      Navigator.of(context).pop();
       // If successful, navigate to HomePage
       Navigator.pushReplacement(
         context,
@@ -37,7 +45,6 @@ class _LoginPageState extends State<LoginPage> {
       });
     }
   }
-  
 
   @override
   void dispose() {
@@ -207,7 +214,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(width: 5),
                       GestureDetector(
                         // Navigate to the registration page (add navigation logic here)
-                        onTap: widget.showRegisterPage,                         
+                        onTap: widget.showRegisterPage,
                         child: const Text(
                           'Register now',
                           style: TextStyle(

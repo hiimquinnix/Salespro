@@ -2,8 +2,8 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:salespro/auth/auth_page.dart';
 import 'package:salespro/pages/forecasting_page.dart';
-import 'package:salespro/pages/open_shift.dart';
 import 'package:salespro/pages/checkout_page.dart'; // Import your checkout page
 
 class HomePage extends StatefulWidget {
@@ -50,11 +50,9 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         backgroundColor: Colors.green,
         actions: [
-          // Checkout Icon Button in the AppBar
           IconButton(
             icon: Icon(Icons.shopping_cart),
             onPressed: () {
-              // Navigate to Checkout Page and pass selected items
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => CheckoutPage()),
@@ -75,8 +73,7 @@ class _HomePageState extends State<HomePage> {
                     width: 120, // the size of the logo
                     height: 100,
                   ),
-                  SizedBox(
-                      height: 10), // Add some space between the logo and text
+                  SizedBox(height: 10), // Space between logo and text
                   Text(
                     'Signed in as: ' + user.email!,
                     style: TextStyle(
@@ -101,14 +98,6 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/receiptpage');
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.watch_later),
-              title: Text("SHIFT"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/shiftpage');
               },
             ),
             ListTile(
@@ -139,8 +128,12 @@ class _HomePageState extends State<HomePage> {
                         TextButton(
                           onPressed: () {
                             FirebaseAuth.instance.signOut();
-                            Navigator.of(context).pushReplacementNamed(
-                                '/login'); // Redirect to login page
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (context) => AuthPage(),
+                              ),
+                              (route) => false,
+                            );
                           },
                           child: Text('Confirm'),
                         ),
@@ -153,181 +146,89 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        // Make content scrollable
-        child: Padding(
-          padding: const EdgeInsets.all(16.0), // Padding around the body
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Larger rectangular "Forecasting" button below the AppBar
-              SizedBox(
-                width: double.infinity, // Full width button
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // Button color
-                    padding:
-                        EdgeInsets.symmetric(vertical: 26.0), // Button height
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.zero, // Makes the button rectangular
+      body: Container(
+        padding: EdgeInsets.all(15.0),
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        child: Column(
+          children: [
+            SizedBox(
+              width: double.infinity, // Full width button
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green, // Button color
+                  padding: EdgeInsets.symmetric(vertical: 26.0), // Button height
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero, // Rectangular button
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SalesForecastPage(),
                     ),
-                  ),                 
-                    onPressed: () {
-                                // Navigate to ShiftPage
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SalesForecastPage(),
-                                  ),
-                                );
-                              },
-                  child: Text(
-                    "Forecasting",
-                    style: TextStyle(
-                      fontSize: 24.0, // Bigger text
-                      color: Colors.white, // White text color
-                    ),
+                  );
+                },
+                child: Text(
+                  "Forecasting",
+                  style: TextStyle(
+                    fontSize: 24.0, // Larger text
+                    color: Colors.white, // White text color
                   ),
                 ),
               ),
-              SizedBox(height: 16.0), // Spacing between button and search bar
-              // Row containing search bar and category dropdown
-              Row(
-                children: [
-                  // Search bar
-                  Expanded(
-                    flex: 2, // Give the search bar more space
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search...",
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          borderSide: BorderSide(),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                      width: 16.0), // Space between search bar and dropdown
-                  // Dropdown for category selection
-                  Expanded(
-                    flex: 1, // Give dropdown less space than the search bar
-                    child: DropdownButtonFormField<String>(
-                      value: selectedCategory, // Current selected value
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                          borderSide: BorderSide(),
-                        ),
-                      ),
-                      items: categories.map((String category) {
-                        return DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedCategory = newValue!;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 10.0), // Spacing between search bar and divider
-              Divider(), // Line divider between search and other content
-              SizedBox(
-                  height:
-                      30.0), // Spacing to separate search bar from "Open Shift"
-              if (isLandscape)
+            ),
+            SizedBox(height: 16.0),
+            Row(
+              children: [
+                // Search bar
                 Expanded(
-                  child: Row(
-                    children: [
-                      // The existing centered button
-                      Expanded(
-                        child: Center(
-                          child: SizedBox(
-                            width: 200, // Width of the centered button
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green, // Button color
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 16.0), // Button size
-                              ),
-                              onPressed: () {
-                                // Navigate to ShiftPage
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ShiftPage(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "Open Shift",
-                                style: TextStyle(
-                                  fontSize:
-                                      18.0, // Text size for the smaller button
-                                  color: Colors.white, // White text color
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      VerticalDivider(), // Divider between content and checkout list
-                      // Checkout list will appear here in landscape mode
-                      Expanded(
-                        child: Container(
-                          color: Colors.grey[200],
-                          child: ListView(
-                            children: selectedItems
-                                .map((item) => ListTile(
-                                      title: Text(item),
-                                      trailing: Text("₱100"), // Sample price
-                                    ))
-                                .toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Center(
-                  // Center the Open Shift button in the remaining space
-                  child: SizedBox(
-                    width: 200, // Width of the centered button
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Button color
-                        padding:
-                            EdgeInsets.symmetric(vertical: 16.0), // Button size
-                      ),
-                      onPressed: () {
-                        // Navigate to ShiftPage
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ShiftPage(),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        "Open Shift",
-                        style: TextStyle(
-                          fontSize: 18.0, // Text size for the smaller button
-                          color: Colors.white, // White text color
-                        ),
+                  flex: 2, // Give the search bar more space
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: "Search...",
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+                SizedBox(width: 16.0), // Space between search bar and dropdown
+                // Dropdown for category selection
+                Expanded(
+                  flex: 1, // Give dropdown less space
+                  child: DropdownButtonFormField<String>(
+                    value: selectedCategory, // Current selected value
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide(),
+                      ),
+                    ),
+                    items: categories.map((String category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedCategory = newValue!;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 15),
+            Divider(
+              thickness: 0.4,
+              color: Colors.grey.shade800,
+            ),
+          ],
         ),
       ),
     );

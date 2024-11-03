@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
-}
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:salespro/model/product_model.dart';
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'All items',
+      title: 'All Items',
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
@@ -20,43 +19,36 @@ class MyApp extends StatelessWidget {
 }
 
 class Items extends StatefulWidget {
-  const Items(
-      {Key? key,
-      required void Function(List<String> newCategories) updateCategories})
-      : super(key: key);
+  const Items({Key? key, required this.updateCategories}) : super(key: key);
+
+  final Function(List<String> newCategories) updateCategories;
 
   @override
   _ItemsState createState() => _ItemsState();
 }
 
 class _ItemsState extends State<Items> {
-  final List<Map<String, dynamic>> _items = [];
-  final List<String> _categories = [
-    'Noodles',
-    'Drinking Beverage',
-    'Ice Creams'
-  ]; // Predefined categories
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final List<String> _categories = ['Noodles', 'Drinking Beverage', 'Ice Creams'];
   String _selectedCategory = 'All';
 
-  void _addItem(
-      String name, String description, double price, String category) {
-    setState(() {
-      _items.add({
-        'name': name,
-        'description': description,
-        'price': price,
-        'category': category
-      });
+  Future<void> _addItem(
+      String name, String description, double price, String category) async {
+    CollectionReference itemsRef = _firestore.collection('Items');
+    await itemsRef.add({
+      'name': name,
+      'description': description,
+      'category': category,
+      'price': price.toString(),
+      'stocks': '100' // Default stocks value
     });
   }
 
-  void _deleteItem(int index) {
-    setState(() {
-      _items.removeAt(index);
-    });
+  Future<void> _deleteItem(String itemId) async {
+    await _firestore.collection('Items').doc(itemId).delete();
   }
 
-  void _confirmDelete(BuildContext context, int index, String itemName) {
+  void _confirmDelete(BuildContext context, String itemId, String itemName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -64,12 +56,12 @@ class _ItemsState extends State<Items> {
         content: Text('Are you sure you want to delete "$itemName"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), // Cancel action
+            onPressed: () => Navigator.pop(context),
             child: Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              _deleteItem(index); // Confirm deletion
+              _deleteItem(itemId);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -86,18 +78,25 @@ class _ItemsState extends State<Items> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    List<Map<String, dynamic>> filteredItems = _selectedCategory == 'All'
-        ? _items
-        : _items
-            .where((item) => item['category'] == _selectedCategory)
-            .toList();
+  void initState() {
+    super.initState();
+  }
 
+  Stream<List<Product>> fetchItems() {
+    return _firestore.collection('Items').snapshots().map((querySnapshot) {
+      return querySnapshot.docs
+          .map((doc) => Product.fromFirestore(doc))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('All Items'),
         actions: [
-          // Category filter dropdown in the AppBar
           DropdownButton<String>(
             value: _selectedCategory,
             onChanged: (newCategory) {
@@ -114,72 +113,114 @@ class _ItemsState extends State<Items> {
           ),
         ],
       ),
-      body: _items.isEmpty
-          ? Center(
-              child: Text(
-                'No items available. Add new items!',
-                style: TextStyle(fontSize: 18),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(8.0),
+      body: StreamBuilder<List<Product>>(
+        stream: fetchItems(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text("An error occurred!"));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text("No products available"));
+          } else {
+            List<Product> items = snapshot.data!;
+            List<Product> filteredItems = _selectedCategory == 'All'
+                ? items
+                : items.where((item) => item.category == _selectedCategory).toList();
+
+            return ListView.builder(
               itemCount: filteredItems.length,
               itemBuilder: (context, index) {
-                final item = filteredItems[index];
-                return Dismissible(
-                  key: UniqueKey(),
-                  direction:
-                      DismissDirection.endToStart, // Swipe from right to left
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
+                final product = filteredItems[index];
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 6,
+                        offset: Offset(0, 3), // Shadow position
+                      ),
+                    ],
                   ),
-                  confirmDismiss: (direction) async {
-                    // Return false to prevent automatic dismissal; show confirmation dialog instead
-                    _confirmDelete(context, index, item['name'] as String);
-                    return false; // Prevent immediate dismissal
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    elevation: 4,
-                    child: ListTile(
-                      leading:
-                          Icon(Icons.fastfood, size: 40, color: Colors.green),
-                      title: Text(
-                        item['name'] as String,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.shopping_bag,
+                          color: Colors.green.shade700,
+                          size: 40,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              product.description,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Stocks: ${product.stocks}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Category: ${product.category}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        '₱${product.price}',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                        ),
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item['description'] as String,
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          Text(
-                            "Category: ${item['category']}",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                        '₱${item['price'].toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
+                    ],
                   ),
                 );
               },
-            ),
+            );
+          }
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Open a dialog to add a new item
           showDialog(
             context: context,
             builder: (context) =>
@@ -208,7 +249,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  String _selectedCategory = 'Noodles'; // Default category
+  String _selectedCategory = 'Noodles';
 
   @override
   Widget build(BuildContext context) {
@@ -264,8 +305,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
                 description.isNotEmpty &&
                 price > 0 &&
                 _selectedCategory.isNotEmpty) {
-              widget.onAddItem(
-                  name, description, price, _selectedCategory); // Pass category
+              widget.onAddItem(name, description, price, _selectedCategory);
               Navigator.pop(context);
             }
           },
