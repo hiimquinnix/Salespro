@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   String selectedCategory = 'All'; // Default selected category
 
   // Store selected items to show in the checkout
-  List<String> selectedItems = [];
+  Map<String, int> selectedItems = {}; // Track selected items and quantities
 
   // Function to update categories from CategoryPage
   void updateCategories(List<String> newCategories) {
@@ -32,33 +32,42 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Function to add items to the selectedItems list
-  void addItemToCheckout(String item) {
+  // Add items and quantities to selectedItems map
+  void addItemToCheckout(String itemName, int quantity) {
     setState(() {
-      selectedItems.add(item); // Add item to checkout list
+      selectedItems[itemName] = quantity;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
     return Scaffold(
       appBar: AppBar(
         title: Text("SalesPRO"),
         centerTitle: true,
         backgroundColor: Colors.green,
         actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CheckoutPage()),
-              );
-            },
-          ),
+         IconButton(
+  icon: Icon(Icons.shopping_cart),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutPage(
+          selectedItems: selectedItems,
+          onItemRemoved: (itemName) {
+            setState(() {
+              selectedItems.remove(itemName);
+            });
+          },
+        ),
+      ),
+    );
+  },
+),
+
+              
+                    
         ],
       ),
       drawer: Drawer(
@@ -148,43 +157,43 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Container(
         padding: EdgeInsets.all(15.0),
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity, // Full width button
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Button color
-                  padding: EdgeInsets.symmetric(vertical: 26.0), // Button height
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero, // Rectangular button
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SalesForecastPage(),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green, // Button color
+                      padding: EdgeInsets.symmetric(vertical: 16.0), // Button height
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
-                  );
-                },
-                child: Text(
-                  "Forecasting",
-                  style: TextStyle(
-                    fontSize: 24.0, // Larger text
-                    color: Colors.white, // White text color
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ForecastPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      "Forecasting",
+                      style: TextStyle(
+                        fontSize: 18.0, // Larger text
+                        color: Colors.white, // White text color
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
             SizedBox(height: 16.0),
             Row(
               children: [
-                // Search bar
                 Expanded(
-                  flex: 2, // Give the search bar more space
+                  flex: 2,
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: "Search...",
@@ -196,12 +205,11 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 16.0), // Space between search bar and dropdown
-                // Dropdown for category selection
+                SizedBox(width: 16.0),
                 Expanded(
-                  flex: 1, // Give dropdown less space
+                  flex: 1,
                   child: DropdownButtonFormField<String>(
-                    value: selectedCategory, // Current selected value
+                    value: selectedCategory,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
@@ -223,10 +231,47 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            SizedBox(height: 15),
-            Divider(
-              thickness: 0.4,
-              color: Colors.grey.shade800,
+            SizedBox(height: 16.0),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                childAspectRatio: 3 / 4,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                padding: EdgeInsets.all(8.0),
+                children: [
+                  POSItem(
+                    itemName: "Bibimbap",
+                    price: 180,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                  POSItem(
+                    itemName: "Kimchi",
+                    price: 120,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                  POSItem(
+                    itemName: "Tteokbokki",
+                    price: 150,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                  POSItem(
+                    itemName: "Samgyeopsal",
+                    price: 300,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                  POSItem(
+                    itemName: "Jajangmyeon",
+                    price: 200,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                  POSItem(
+                    itemName: "Bulgogi",
+                    price: 250,
+                    onItemSelect: addItemToCheckout,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -235,8 +280,73 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-void main() {
-  runApp(MaterialApp(
-    home: HomePage(),
-  ));
+// Create a POSItem widget with quantity tracking functionality
+class POSItem extends StatefulWidget {
+  final String itemName;
+  final double price;
+  final void Function(String itemName, int quantity) onItemSelect;
+
+  const POSItem({
+    Key? key,
+    required this.itemName,
+    required this.price,
+    required this.onItemSelect,
+  }) : super(key: key);
+
+  @override
+  State<POSItem> createState() => _POSItemState();
+}
+
+class _POSItemState extends State<POSItem> {
+  int quantity = 0;
+
+  void incrementQuantity() {
+    setState(() {
+      quantity++;
+    });
+    widget.onItemSelect(widget.itemName, quantity);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: incrementQuantity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            padding: EdgeInsets.all(10.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.fastfood, size: 50, color: Colors.green),
+                SizedBox(height: 8),
+                Text(widget.itemName, style: TextStyle(fontSize: 16)),
+                SizedBox(height: 4),
+                Text("₱${widget.price.toStringAsFixed(0)}",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+              ],
+            ),
+          ),
+          if (quantity > 0)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: CircleAvatar(
+                backgroundColor: Colors.green,
+                radius: 12,
+                child: Text(
+                  quantity.toString(),
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ),  
+        ],
+      ),
+    );
+  }
 }

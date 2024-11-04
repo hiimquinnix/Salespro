@@ -1,85 +1,109 @@
 import 'package:flutter/material.dart';
 
 class CheckoutPage extends StatefulWidget {
+  final Map<String, int> selectedItems;
+  final Function(String) onItemRemoved; // Callback function
+
+  CheckoutPage({required this.selectedItems, required this.onItemRemoved});
+
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  // Example order items (in a real app, you'd pass this data dynamically)
-  final List<Map<String, dynamic>> _orderItems = [
-    {'name': 'Apple', 'price': 1.50, 'quantity': 3},
-    {'name': 'Banana', 'price': 0.80, 'quantity': 5},
-    {'name': 'Bread', 'price': 2.50, 'quantity': 1},
-  ];
+  double totalPrice = 0;
 
-  double _getTotalPrice() {
-    return _orderItems.fold(0.0, (sum, item) {
-      return sum + (item['price'] * item['quantity']);
+  // Define item prices
+  final Map<String, double> itemPrices = {
+    'Bibimbap': 180,
+    'Kimchi': 120,
+    'Tteokbokki': 150,
+    'Samgyeopsal': 300,
+    'Jajangmyeon': 200,
+    'Bulgogi': 250,
+  };
+
+  // Update the total price whenever an item is added or removed
+  void updateTotalPrice() {
+    totalPrice = 0;
+    widget.selectedItems.forEach((item, quantity) {
+      double? price = itemPrices[item];
+      if (price != null) {
+        totalPrice += price * quantity;
+      }
     });
+  }
+
+  // Method to decrease the quantity of an item
+  void decrementItem(String itemName) {
+    setState(() {
+      if (widget.selectedItems[itemName]! > 1) {
+        widget.selectedItems[itemName] = widget.selectedItems[itemName]! - 1;
+      } else {
+        widget.selectedItems.remove(itemName);
+        widget.onItemRemoved(itemName); // Notify HomePage to remove the item
+      }
+      updateTotalPrice();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateTotalPrice();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Checkout Ticket'),
+        title: Text("Checkout"),
+        backgroundColor: Colors.green,
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             Text(
-              'Order Summary',
-              style: Theme.of(context).textTheme.headlineSmall, // Updated to headlineSmall
-            ),
-            SizedBox(height: 16.0),
-            // Order items displayed like a receipt
-            ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(), // Prevent scrolling inside
-              itemCount: _orderItems.length,
-              itemBuilder: (context, index) {
-                final item = _orderItems[index];
-                return ListTile(
-                  title: Text('${item['name']} x ${item['quantity']}'),
-                  trailing: Text('₱${(item['price'] * item['quantity']).toStringAsFixed(2)}'),
-                );
-              },
+              "Your Receipt",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             Divider(),
-            ListTile(
-              title: Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
-              trailing: Text(
-                '₱${_getTotalPrice().toStringAsFixed(2)}',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: ListView(
+                children: widget.selectedItems.entries.map((entry) {
+                  String itemName = entry.key;
+                  int quantity = entry.value;
+                  double? price = itemPrices[itemName];
+                  double itemTotal = (price ?? 0) * quantity;
+
+                  return ListTile(
+                    title: Text(itemName),
+                    subtitle: Text("₱${price?.toStringAsFixed(2)} x $quantity"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.remove_circle, color: Colors.red),
+                          onPressed: () => decrementItem(itemName),
+                        ),
+                        Text("₱${itemTotal.toStringAsFixed(2)}"),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             Divider(),
-            SizedBox(height: 24.0),
-            Text(
-              'Payment',
-              style: Theme.of(context).textTheme.headlineSmall, // Updated to headlineSmall
-            ),
-            SizedBox(height: 16.0),
-            // Placeholder for payment methods or summary
             ListTile(
-              title: Text('Cash'),
-              trailing: Text('₱${_getTotalPrice().toStringAsFixed(2)}'),
-            ),
-            Divider(),
-            SizedBox(height: 24.0),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                child: Text('Complete Purchase'),
-                onPressed: () {
-                  // Here you would typically send the order to your backend
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Processing Payment...')),
-                  );
-                },
+              title: Text(
+                "Total",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              trailing: Text(
+                "₱${totalPrice.toStringAsFixed(2)}",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ],
