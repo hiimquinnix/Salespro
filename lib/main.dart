@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:salespro/pages/home_page.dart';
 import 'package:salespro/pages/receipts_page.dart';
 
-void main() async { // si main .dart lang always may ganito sorry boss no idea talaga baguhan haha
+void main() async { 
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase based on the platform (web or non-web)
