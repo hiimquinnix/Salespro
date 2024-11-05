@@ -47,27 +47,24 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         backgroundColor: Colors.green,
         actions: [
-         IconButton(
-  icon: Icon(Icons.shopping_cart),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CheckoutPage(
-          selectedItems: selectedItems,
-          onItemRemoved: (itemName) {
-            setState(() {
-              selectedItems.remove(itemName);
-            });
-          },
-        ),
-      ),
-    );
-  },
-),
-
-              
-                    
+          IconButton(
+            icon: Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CheckoutPage(
+                    selectedItems: selectedItems,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
       drawer: Drawer(
@@ -165,7 +162,8 @@ class _HomePageState extends State<HomePage> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green, // Button color
-                      padding: EdgeInsets.symmetric(vertical: 16.0), // Button height
+                      padding:
+                          EdgeInsets.symmetric(vertical: 16.0), // Button height
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -244,31 +242,61 @@ class _HomePageState extends State<HomePage> {
                     itemName: "Bibimbap",
                     price: 180,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                   POSItem(
                     itemName: "Kimchi",
                     price: 120,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                   POSItem(
                     itemName: "Tteokbokki",
                     price: 150,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                   POSItem(
                     itemName: "Samgyeopsal",
                     price: 300,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                   POSItem(
                     itemName: "Jajangmyeon",
                     price: 200,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                   POSItem(
                     itemName: "Bulgogi",
                     price: 250,
                     onItemSelect: addItemToCheckout,
+                    onItemRemoved: (itemName) {
+                      setState(() {
+                        selectedItems.remove(itemName);
+                      });
+                    },
                   ),
                 ],
               ),
@@ -285,12 +313,14 @@ class POSItem extends StatefulWidget {
   final String itemName;
   final double price;
   final void Function(String itemName, int quantity) onItemSelect;
+  final void Function(String itemName) onItemRemoved;
 
   const POSItem({
     Key? key,
     required this.itemName,
     required this.price,
     required this.onItemSelect,
+    required this.onItemRemoved,
   }) : super(key: key);
 
   @override
@@ -307,45 +337,103 @@ class _POSItemState extends State<POSItem> {
     widget.onItemSelect(widget.itemName, quantity);
   }
 
+  void decrementQuantity() {
+    if (quantity > 0) {
+      setState(() {
+        quantity--;
+        if (quantity == 0) {
+          widget.onItemRemoved(widget.itemName);
+        }
+      });
+      widget.onItemSelect(widget.itemName, quantity);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: incrementQuantity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8.0),
+      child: Container(
+        margin: EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 6.0,
+              spreadRadius: 1.0,
+              offset: Offset(0, 3), // Changes position of shadow
             ),
-            padding: EdgeInsets.all(10.0),
-            child: Column(
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.fastfood, size: 50, color: Colors.green),
-                SizedBox(height: 8),
-                Text(widget.itemName, style: TextStyle(fontSize: 16)),
-                SizedBox(height: 4),
-                Text("₱${widget.price.toStringAsFixed(0)}",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+                Container(
+                  padding: EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Icon(Icons.fastfood, size: 50, color: Colors.green),
+                      SizedBox(height: 8),
+                      Text(
+                        widget.itemName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "₱${widget.price.toStringAsFixed(0)}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (quantity > 0)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(12.0),
+                      ),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'Qty: $quantity',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
-          if (quantity > 0)
             Positioned(
-              top: 8,
-              right: 8,
-              child: CircleAvatar(
-                backgroundColor: Colors.green,
-                radius: 12,
-                child: Text(
-                  quantity.toString(),
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            ),  
-        ],
+              top: 10,
+              right: 10,
+              child: quantity > 0
+                  ? CircleAvatar(
+                      backgroundColor: Colors.green,
+                      radius: 12,
+                      child: Text(
+                        quantity.toString(),
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    )
+                  : SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
