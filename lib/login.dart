@@ -15,7 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  String _errorMessage = ''; // To show authentication errors
+  String? _errorMessage; // Error message to show only when needed
   bool _isPasswordVisible = false; // Toggle password visibility
 
   // Function to sign in using Firebase Authentication
@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     showDialog(
       context: context,
       builder: (context) {
-        return Center(child: CircularProgressIndicator());
+        return const Center(child: CircularProgressIndicator());
       },
     );
 
@@ -32,16 +32,34 @@ class _LoginPageState extends State<LoginPage> {
         email: _usernameController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
       Navigator.of(context).pop();
+
       // If successful, navigate to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) =>  HomePage()),
       );
-    } catch (e) {
-      // If there's an error, display it
+    } on FirebaseAuthException catch (e) {
+      Navigator.of(context).pop(); // Close the loading indicator dialog
+
       setState(() {
-        _errorMessage = e.toString();
+        // Display user-friendly error messages
+        if (e.code == 'user-not-found') {
+          _errorMessage = "No user found with this email.";
+        } else if (e.code == 'wrong-password') {
+          _errorMessage =
+              "Your email or password was incorrect. Please try again.";
+        } else if (e.code == 'invalid-email') {
+          _errorMessage = "The email address is invalid.";
+        } else {
+          _errorMessage = "Your email or password was incorrect. Please try again.";
+        }
+      });
+    } catch (e) {
+      Navigator.of(context).pop(); // Close the loading indicator dialog
+      setState(() {
+        _errorMessage = "An unexpected error occurred. Please try again.";
       });
     }
   }
@@ -165,6 +183,9 @@ class _LoginPageState extends State<LoginPage> {
                       onTap: () {
                         if (_formKey.currentState!.validate()) {
                           // If form is valid, proceed to authenticate via Firebase
+                          setState(() {
+                            _errorMessage = null; // Clear previous errors
+                          });
                           signIn();
                         }
                       },
@@ -190,12 +211,16 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 10),
 
                   // Display error message if sign-in fails
-                  if (_errorMessage.isNotEmpty)
+                  if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 25.0),
                       child: Text(
-                        _errorMessage,
-                        style: TextStyle(color: Colors.red),
+                        _errorMessage!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
 
