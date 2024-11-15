@@ -20,14 +20,6 @@ class ItemsPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/items');
               },
           ),
-          
-          ListTile(
-            leading: Icon(Icons.local_offer),
-            title: const Text('Discount'),
-            onTap: () {
-              // Action for Categories tap
-            },
-          ),
         ],
       ),
     );

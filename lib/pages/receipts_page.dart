@@ -2,29 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ReceiptsPage extends StatelessWidget {
-  const ReceiptsPage({super.key});
+  final List<Map<String, dynamic>> receipts; // Receipts passed from CheckoutPage
 
-  // Mock data to simulate receipt history
-  List<Map<String, dynamic>> _generateMockReceipts() {
-    final List<Map<String, dynamic>> receipts = [];
-    final DateTime now = DateTime.now();
-    
-    for (int i = 0; i < 10; i++) {
-      final date = now.subtract(Duration(days: i * 3));  // Example of past receipts
-      receipts.add({
-        "referenceNumber": "RECPT-${1000 + i}",
-        "date": date,
-        "time": DateFormat('hh:mm a').format(date),
-        "dayOfWeek": DateFormat('EEEE').format(date),
-      });
-    }
-    return receipts;
-  }
+  const ReceiptsPage({super.key, required this.receipts});
 
   @override
   Widget build(BuildContext context) {
-    final receipts = _generateMockReceipts();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Receipts History"),
@@ -43,6 +26,9 @@ class ReceiptsPage extends StatelessWidget {
                 Text("Date: ${DateFormat('yyyy-MM-dd').format(receipt['date'])}"),
                 Text("Time: ${receipt['time']}"),
                 Text("Day: ${receipt['dayOfWeek']}"),
+                Text("Total: ₱${receipt['totalAmount'].toStringAsFixed(2)}"),
+                Text("Received: ₱${receipt['receivedAmount'].toStringAsFixed(2)}"),
+                Text("Balance: ₱${receipt['balance'].toStringAsFixed(2)}"),
               ],
             ),
             isThreeLine: true,

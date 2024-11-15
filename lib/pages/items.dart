@@ -29,18 +29,22 @@ class Items extends StatefulWidget {
 
 class _ItemsState extends State<Items> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final List<String> _categories = ['Noodles', 'Drinking Beverage', 'Ice Creams'];
+  final List<String> _categories = [
+    'Noodles',
+    'Drinking Beverage',
+    'Ice Creams'
+  ];
   String _selectedCategory = 'All';
 
-  Future<void> _addItem(
-      String name, String description, double price, String category) async {
+  Future<void> _addItem(String name, String description, double price,
+      String category, int stocks) async {
     CollectionReference itemsRef = _firestore.collection('Items');
     await itemsRef.add({
       'name': name,
       'description': description,
       'category': category,
       'price': price.toString(),
-      'stocks': '100' // Default stocks value
+      'stocks': stocks.toString(),
     });
   }
 
@@ -75,11 +79,6 @@ class _ItemsState extends State<Items> {
         ],
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   Stream<List<Product>> fetchItems() {
@@ -126,7 +125,9 @@ class _ItemsState extends State<Items> {
             List<Product> items = snapshot.data!;
             List<Product> filteredItems = _selectedCategory == 'All'
                 ? items
-                : items.where((item) => item.category == _selectedCategory).toList();
+                : items
+                    .where((item) => item.category == _selectedCategory)
+                    .toList();
 
             return ListView.builder(
               itemCount: filteredItems.length,
@@ -143,7 +144,7 @@ class _ItemsState extends State<Items> {
                         color: Colors.grey.withOpacity(0.2),
                         spreadRadius: 2,
                         blurRadius: 6,
-                        offset: Offset(0, 3), // Shadow position
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
@@ -234,7 +235,7 @@ class _ItemsState extends State<Items> {
 }
 
 class AddItemDialog extends StatefulWidget {
-  final Function(String, String, double, String) onAddItem;
+  final Function(String, String, double, String, int) onAddItem;
   final List<String> categories;
 
   const AddItemDialog(
@@ -249,6 +250,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  final _stocksController = TextEditingController();
   String _selectedCategory = 'Noodles';
 
   @override
@@ -265,6 +267,11 @@ class _AddItemDialogState extends State<AddItemDialog> {
           TextField(
             controller: _descriptionController,
             decoration: InputDecoration(labelText: 'Description'),
+          ),
+          TextField(
+            controller: _stocksController,
+            decoration: InputDecoration(labelText: 'Stocks'),
+            keyboardType: TextInputType.number,
           ),
           TextField(
             controller: _priceController,
@@ -301,11 +308,15 @@ class _AddItemDialogState extends State<AddItemDialog> {
             final name = _nameController.text;
             final description = _descriptionController.text;
             final price = double.tryParse(_priceController.text) ?? 0.0;
+            final stocks = int.tryParse(_stocksController.text) ?? 0;
+
             if (name.isNotEmpty &&
                 description.isNotEmpty &&
                 price > 0 &&
-                _selectedCategory.isNotEmpty) {
-              widget.onAddItem(name, description, price, _selectedCategory);
+                _selectedCategory.isNotEmpty &&
+                stocks >= 0) {
+              widget.onAddItem(
+                  name, description, price, _selectedCategory, stocks);
               Navigator.pop(context);
             }
           },

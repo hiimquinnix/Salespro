@@ -1,10 +1,9 @@
-// ignore_for_file: prefer_const_constructors
-
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:salespro/auth/auth_page.dart';
 import 'package:salespro/pages/forecasting_page.dart';
-import 'package:salespro/pages/checkout_page.dart'; // Import your checkout page
+import 'package:salespro/pages/checkout_page.dart'; // Make sure to import CheckoutPage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,28 +14,105 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser!;
+  List<String> categories = []; // List to hold categories from Firestore
+  String selectedCategory = 'All';
+  String _searchQuery = ''; // Add search query state
+  final TextEditingController _searchController = TextEditingController();
 
-  List<String> categories = ['All']; // Initial default category
-  String selectedCategory = 'All'; // Default selected category
+  Map<String, int> selectedItems = {}; // Holds selected items and their quantities
+  Map<String, int> stockQuantities = {}; // Real-time stock quantities
 
-  // Store selected items to show in the checkout
-  Map<String, int> selectedItems = {}; // Track selected items and quantities
+  // Fetch stock quantities in real-time
+  void _fetchStockQuantities() {
+    FirebaseFirestore.instance.collection('Items').snapshots().listen((snapshot) {
+      final Map<String, int> newStockQuantities = {};
+      for (var doc in snapshot.docs) {
+        final itemName = doc['name'];
+        final stock = int.tryParse(doc['stocks'].toString()) ?? 0;
+        newStockQuantities[itemName] = stock;
+      }
+      setState(() {
+        stockQuantities = newStockQuantities;
+      });
+    });
+  }
 
-  // Function to update categories from CategoryPage
-  void updateCategories(List<String> newCategories) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchStockQuantities(); // Fetch initial stock quantities
+    _fetchCategories(); // Fetch categories from Firestore
+    _searchController.addListener(_onSearchChanged); // Listen for search input changes
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose(); // Dispose of the controller when done
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
     setState(() {
-      categories = ['All', ...newCategories]; // 'All' is always default
-      if (!categories.contains(selectedCategory)) {
-        selectedCategory = 'All';
+      _searchQuery = _searchController.text;
+    });
+  }
+
+  void _fetchCategories() async {
+    // Fetch categories from Firestore collection
+    final snapshot = await FirebaseFirestore.instance.collection('Categories').get();
+    setState(() {
+      categories = ['All'] + snapshot.docs.map((doc) => doc['name'].toString()).toList();
+    });
+  }
+
+  void addItemToCheckout(String itemName, int quantity) {
+    setState(() {
+      if (quantity > 0 && quantity <= (stockQuantities[itemName] ?? 0)) {
+        selectedItems[itemName] = quantity; // Add or update the quantity when confirmed
+      } else {
+        selectedItems.remove(itemName); // Remove item if quantity is 0 or exceeds stock
       }
     });
   }
 
-  // Add items and quantities to selectedItems map
-  void addItemToCheckout(String itemName, int quantity) {
-    setState(() {
-      selectedItems[itemName] = quantity;
-    });
+  void navigateToCheckout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutPage(
+          selectedItems: selectedItems,
+          onItemRemoved: (itemName) {
+            setState(() {
+              selectedItems.remove(itemName);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchPOSItems() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('Items').get();
+      return snapshot.docs.map((doc) {
+        return {
+          'name': doc['name'],
+          'price': _convertToDouble(doc['price']),
+          'category': doc['category'],
+        };
+      }).toList();
+    } catch (e) {
+      print("Error fetching POS items: $e");
+      return [];
+    }
+  }
+
+  double _convertToDouble(dynamic price) {
+    if (price == null) return 0.0;
+    if (price is double) return price;
+    if (price is int) return price.toDouble();
+    if (price is String) return double.tryParse(price) ?? 0.0;
+    return 0.0;
   }
 
   @override
@@ -49,21 +125,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CheckoutPage(
-                    selectedItems: selectedItems,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
+            onPressed: navigateToCheckout,
           ),
         ],
       ),
@@ -75,17 +137,14 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   Image.asset(
-                    'lib/images/logo.png', // this is the logo path
-                    width: 120, // the size of the logo
+                    'lib/images/logo.png',
+                    width: 120,
                     height: 100,
                   ),
-                  SizedBox(height: 10), // Space between logo and text
+                  SizedBox(height: 10),
                   Text(
                     'Signed in as: ' + user.email!,
-                    style: TextStyle(
-                      fontSize: 9, // Adjust text size if necessary
-                      color: Colors.black, // Adjust text color if necessary
-                    ),
+                    style: TextStyle(fontSize: 9, color: Colors.black),
                   ),
                 ],
               ),
@@ -161,9 +220,8 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, // Button color
-                      padding:
-                          EdgeInsets.symmetric(vertical: 16.0), // Button height
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -178,10 +236,7 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Text(
                       "Forecasting",
-                      style: TextStyle(
-                        fontSize: 18.0, // Larger text
-                        color: Colors.white, // White text color
-                      ),
+                      style: TextStyle(fontSize: 18.0, color: Colors.white),
                     ),
                   ),
                 ),
@@ -193,12 +248,12 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   flex: 2,
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: "Search...",
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(),
                       ),
                     ),
                   ),
@@ -206,99 +261,74 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(width: 16.0),
                 Expanded(
                   flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                        borderSide: BorderSide(),
-                      ),
-                    ),
-                    items: categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedCategory = newValue!;
-                      });
-                    },
-                  ),
+                  child: categories.isEmpty
+                      ? CircularProgressIndicator()
+                      : DropdownButtonFormField<String>(
+                          value: selectedCategory,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          items: categories.map((String category) {
+                            return DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedCategory = newValue!;
+                            });
+                          },
+                        ),
                 ),
               ],
             ),
             SizedBox(height: 16.0),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                childAspectRatio: 3 / 4,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                padding: EdgeInsets.all(8.0),
-                children: [
-                  POSItem(
-                    itemName: "Bibimbap",
-                    price: 180,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _fetchPOSItems(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No items available.'));
+                  }
+
+                  // Filter items based on category and search query
+                  final posItems = snapshot.data!.where((item) {
+                    final itemCategory = item['category'].toString();
+                    final itemName = item['name'].toLowerCase();
+                    final searchQuery = _searchQuery.toLowerCase();
+                    return (selectedCategory == 'All' || itemCategory == selectedCategory) &&
+                        itemName.contains(searchQuery);
+                  }).toList();
+
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                    ),
+                    itemCount: posItems.length,
+                    itemBuilder: (context, index) {
+                      final item = posItems[index];
+                      final itemName = item['name'];
+                      final stock = stockQuantities[itemName] ?? 0;
+                      return POSItem(
+                        itemName: itemName,
+                        price: item['price'],
+                        stock: stock,
+                        onItemSelect: addItemToCheckout,
+                      );
                     },
-                  ),
-                  POSItem(
-                    itemName: "Kimchi",
-                    price: 120,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                  POSItem(
-                    itemName: "Tteokbokki",
-                    price: 150,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                  POSItem(
-                    itemName: "Samgyeopsal",
-                    price: 300,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                  POSItem(
-                    itemName: "Jajangmyeon",
-                    price: 200,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                  POSItem(
-                    itemName: "Bulgogi",
-                    price: 250,
-                    onItemSelect: addItemToCheckout,
-                    onItemRemoved: (itemName) {
-                      setState(() {
-                        selectedItems.remove(itemName);
-                      });
-                    },
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ],
@@ -308,42 +338,39 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Create a POSItem widget with quantity tracking functionality
 class POSItem extends StatefulWidget {
   final String itemName;
   final double price;
-  final void Function(String itemName, int quantity) onItemSelect;
-  final void Function(String itemName) onItemRemoved;
+  final int stock;
+  final Function(String, int) onItemSelect;
 
-  const POSItem({
-    Key? key,
+  POSItem({
     required this.itemName,
     required this.price,
+    required this.stock,
     required this.onItemSelect,
-    required this.onItemRemoved,
-  }) : super(key: key);
+  });
 
   @override
-  State<POSItem> createState() => _POSItemState();
+  _POSItemState createState() => _POSItemState();
 }
 
 class _POSItemState extends State<POSItem> {
   int quantity = 0;
 
-  void incrementQuantity() {
-    setState(() {
-      quantity++;
-    });
-    widget.onItemSelect(widget.itemName, quantity);
+  void _incrementQuantity() {
+    if (quantity < widget.stock) {
+      setState(() {
+        quantity++;
+      });
+      widget.onItemSelect(widget.itemName, quantity);
+    }
   }
 
-  void decrementQuantity() {
+  void _decrementQuantity() {
     if (quantity > 0) {
       setState(() {
         quantity--;
-        if (quantity == 0) {
-          widget.onItemRemoved(widget.itemName);
-        }
       });
       widget.onItemSelect(widget.itemName, quantity);
     }
@@ -351,89 +378,34 @@ class _POSItemState extends State<POSItem> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: incrementQuantity,
-      child: Container(
-        margin: EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 6.0,
-              spreadRadius: 1.0,
-              offset: Offset(0, 3), // Changes position of shadow
-            ),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      Icon(Icons.fastfood, size: 50, color: Colors.green),
-                      SizedBox(height: 8),
-                      Text(
-                        widget.itemName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "₱${widget.price.toStringAsFixed(0)}",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (quantity > 0)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.vertical(
-                        bottom: Radius.circular(12.0),
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Qty: $quantity',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: quantity > 0
-                  ? CircleAvatar(
-                      backgroundColor: Colors.green,
-                      radius: 12,
-                      child: Text(
-                        quantity.toString(),
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    )
-                  : SizedBox.shrink(),
-            ),
-          ],
-        ),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(widget.itemName, style: TextStyle(fontSize: 16.0)),
+          Text('₱${widget.price.toStringAsFixed(2)}', style: TextStyle(fontSize: 14.0)),
+          Text('Stock: ${widget.stock}', style: TextStyle(fontSize: 12.0, color: Colors.redAccent)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: Icon(Icons.remove),
+                onPressed: _decrementQuantity,
+                color: quantity > 0 ? Colors.black : Colors.grey,
+              ),
+              Text('$quantity', style: TextStyle(fontSize: 18.0)),
+              IconButton(
+                icon: Icon(Icons.add),
+                onPressed: _incrementQuantity,
+                color: quantity < widget.stock ? Colors.black : Colors.grey,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

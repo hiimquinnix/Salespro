@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
               showRegisterPage: () {},
             ),
         '/salespage': (context) => const HomePage(),
-        '/receiptpage': (context) => const ReceiptsPage(),
+        '/receiptpage': (context) => const ReceiptsPage(receipts: [],),
         '/itemspage': (context) => const ItemsPage(),
         '/items': (context) => Items(
               updateCategories: (List<String> newCategories) {},
