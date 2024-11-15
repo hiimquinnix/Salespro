@@ -18,6 +18,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Map<String, double> itemPrices = {};
   final TextEditingController _receivedAmountController = TextEditingController();
   List<Map<String, dynamic>> receipts = [];
+  
+  String selectedTimeFilter = 'Week'; // Default to 'Week'
 
   @override
   void dispose() {
@@ -74,7 +76,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
   }
 
-  // Increment the quantity of an item
   void incrementItem(String itemName) {
     setState(() {
       widget.selectedItems[itemName] = (widget.selectedItems[itemName] ?? 0) + 1;
@@ -82,7 +83,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
   }
 
-  // Decrement the quantity of an item
   void decrementItem(String itemName) {
     setState(() {
       if (widget.selectedItems[itemName]! > 1) {
@@ -94,7 +94,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
   }
 
-  // Remove an item completely from the cart
   void removeItem(String itemName) {
     setState(() {
       widget.selectedItems.remove(itemName);
@@ -162,11 +161,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Text("Cancel"),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
 
                 // Add receipt to the list of receipts
-                receipts.add({
+                Map<String, dynamic> receipt = {
                   'referenceNumber': DateTime.now().millisecondsSinceEpoch.toString(),
                   'date': DateTime.now(),
                   'time': DateFormat('HH:mm').format(DateTime.now()),
@@ -175,7 +174,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   'receivedAmount': receivedAmount,
                   'balance': balance,
                   'items': Map<String, int>.from(widget.selectedItems),
-                });
+                };
+
+                // Save the receipt to Firestore
+                await FirebaseFirestore.instance.collection('Receipt').add(receipt);
 
                 setState(() {
                   widget.selectedItems.clear();
@@ -211,7 +213,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
               onPressed: () {
                 double receivedAmount = double.tryParse(_receivedAmountController.text) ?? 0;
                 if (receivedAmount < totalPrice) {
-                  // Show a warning if the received amount is less than the total price
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Received amount is less than total price')),
                   );
@@ -235,15 +236,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
         title: Text("Checkout"),
         backgroundColor: Colors.green,
         actions: [
-          IconButton(
-            icon: Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReceiptsPage(receipts: receipts),
-                ),
-              );
+          // Dropdown to filter by Week, Month, or Year
+          PopupMenuButton<String>(
+            onSelected: (String value) {
+              setState(() {
+                selectedTimeFilter = value;
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return {'Week', 'Month', 'Year'}.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
             },
           ),
         ],
@@ -283,7 +289,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           IconButton(
                             icon: Icon(Icons.delete),
                             onPressed: () {
-                              removeItem(itemName); // Remove item from cart
+                              removeItem(itemName);
                             },
                           ),
                         ],
@@ -299,17 +305,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Total Price", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("₱${totalPrice.toStringAsFixed(2)}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("Total: ₱${totalPrice.toStringAsFixed(2)}", style: TextStyle(fontSize: 18)),
+                  ElevatedButton(
+                    onPressed: showReceivedAmountDialog,
+                    child: Text("Proceed to Payment"),
+                  ),
                 ],
-              ),
-            ),
-            ElevatedButton(
-              onPressed: showReceivedAmountDialog,
-              child: Text("Proceed to Payment"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
