@@ -1,219 +1,303 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'dart:math';
-
-void main() {
-  runApp(SalesForecastingApp());
-}
-
-class SalesForecastingApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sales Forecasting',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: ForecastPage(),
-    );
-  }
-}
+import 'package:fl_chart/fl_chart.dart';
 
 class ForecastPage extends StatefulWidget {
   @override
   _ForecastPageState createState() => _ForecastPageState();
 }
 
-class _ForecastPageState extends State<ForecastPage> {
-  final TextEditingController _totalSalesController = TextEditingController();
-  final TextEditingController _periodController = TextEditingController();
-  DateTime? _selectedDate;
-  String _selectedTimeUnit = 'Days';
+class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderStateMixin {
+  List<double> _monthlySales = [];
   double _forecastedSales = 0.0;
-  double _growthPercentage = 0.0;
+  double _growthRate = 0.0;
   Map<String, double> _forecastData = {};
-  double _growthRate = 0.0; // For tracking growth rate
+  bool _isLoading = true;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
 
-  void calculateForecast() {
-    final double totalSales = double.tryParse(_totalSalesController.text) ?? 0.0;
-    final int period = int.tryParse(_periodController.text) ?? 0;
+  final currencyFormat = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
 
-    if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a date for the initial sales.')),
-      );
-      return;
-    }
-
-    // Generate random growth percentage between 1 and 50
-    _growthRate = Random().nextDouble() * 49 + 1; // between 1 and 50
-    print("Random Growth Rate: $_growthRate%"); // For debugging
-
-    _forecastData.clear();
-
-    double forecastMultiplier;
-    switch (_selectedTimeUnit) {
-      case 'Days':
-        forecastMultiplier = period.toDouble();
-        break;
-      case 'Weeks':
-        forecastMultiplier = period * 7.0;
-        break;
-      case 'Months':
-        forecastMultiplier = period * 30.0; // Assume 30 days for a month
-        break;
-      case 'Years':
-        forecastMultiplier = period * 365.0;
-        break;
-      default:
-        forecastMultiplier = 0.0;
-    }
-
-    _forecastedSales = totalSales * (1 + (_growthRate / 100) * forecastMultiplier);
-    if (totalSales > 0) {
-      _growthPercentage = min(100, ((_forecastedSales - totalSales) / totalSales) * 100); // Cap growth percentage at 100%
-    }
-
-    // Populate forecast data for each time unit
-    _forecastData['Days'] = totalSales * (1 + (_growthRate / 100) * 1);
-    _forecastData['Weeks'] = totalSales * (1 + (_growthRate / 100) * 7);
-    _forecastData['Months'] = totalSales * (1 + (_growthRate / 100) * 30);
-    _forecastData['Years'] = totalSales * (1 + (_growthRate / 100) * 365);
-
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1500),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _animationController.repeat(reverse: true);
+    _fetchSalesData();
   }
 
-  void selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null) {
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchSalesData() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Receipt')
+          .orderBy('date', descending: true)
+          .limit(12)
+          .get();
+
+      Map<String, double> monthlySalesMap = {};
+
+      snapshot.docs.forEach((doc) {
+        DateTime date;
+        if (doc['date'] is Timestamp) {
+          date = (doc['date'] as Timestamp).toDate();
+        } else if (doc['date'] is String) {
+          date = DateTime.parse(doc['date']);
+        } else {
+          print('Unsupported date format for document ${doc.id}');
+          return;
+        }
+
+        String monthKey = DateFormat('yyyy-MM').format(date);
+        double amount = (doc['totalAmount'] is num) 
+            ? (doc['totalAmount'] as num).toDouble() 
+            : double.tryParse(doc['totalAmount'].toString()) ?? 0.0;
+
+        monthlySalesMap.update(monthKey, (value) => value + amount, ifAbsent: () => amount);
+      });
+
       setState(() {
-        _selectedDate = picked;
+        _monthlySales = monthlySalesMap.values.toList().reversed.toList();
+      });
+
+      await Future.delayed(Duration(seconds: 3));
+
+      _calculateForecast();
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching sales data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching sales data. Please try again later.')),
+      );
+      setState(() {
+        _isLoading = false;
       });
     }
   }
 
-  String formatDate(DateTime date) {
-    return "${date.year}-${date.month}-${date.day}";
-  }
+  void _calculateForecast() {
+    if (_monthlySales.isEmpty) return;
 
-  DateTime calculateFutureDate(int period, String unit) {
-    switch (unit) {
-      case 'Days':
-        return _selectedDate!.add(Duration(days: period));
-      case 'Weeks':
-        return _selectedDate!.add(Duration(days: period * 7));
-      case 'Months':
-        return DateTime(_selectedDate!.year, _selectedDate!.month + period, _selectedDate!.day);
-      case 'Years':
-        return DateTime(_selectedDate!.year + period, _selectedDate!.month, _selectedDate!.day);
-      default:
-        return _selectedDate!;
+    double totalGrowth = 0;
+    for (int i = 1; i < _monthlySales.length; i++) {
+      if (_monthlySales[i - 1] != 0) {
+        totalGrowth += (_monthlySales[i] - _monthlySales[i - 1]) / _monthlySales[i - 1];
+      }
     }
+    _growthRate = (totalGrowth / (_monthlySales.length - 1)) * 100;
+
+    _forecastedSales = _monthlySales.last * (1 + _growthRate / 100);
+
+    _forecastData['1 Month'] = _forecastedSales;
+    _forecastData['3 Months'] = _monthlySales.last * pow(1 + _growthRate / 100, 3);
+    _forecastData['6 Months'] = _monthlySales.last * pow(1 + _growthRate / 100, 6);
+    _forecastData['1 Year'] = _monthlySales.last * pow(1 + _growthRate / 100, 12);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sales Forecasting')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text('Sales Forecasting'),
+        backgroundColor: Colors.green.shade700,
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ScaleTransition(
+                    scale: _animation,
+                    child: Icon(Icons.bar_chart, size: 100, color: Colors.green.shade700),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Generating your forecast...',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                  ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    color: Colors.green.shade700,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sales Forecast',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Based on historical data',
+                          style: TextStyle(fontSize: 16, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSalesChart(),
+                        SizedBox(height: 24),
+                        _buildForecastTable(),
+                        SizedBox(height: 24),
+                        _buildGrowthRateCard(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildSalesChart() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Forecast graph section at the top
             Text(
-              'Forecasted Sales Over Time Units',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              'Historical Monthly Sales',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: _forecastData.entries.map((entry) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('₱${entry.value.toStringAsFixed(2)}'),
-                      Container(
-                        height: entry.value / _forecastData.values.reduce((a, b) => a > b ? a : b) * 150,
-                        width: 40,
-                        color: Colors.blue,
+            SizedBox(height: 16),
+            Container(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          int index = value.toInt();
+                          if (index % 2 == 0 && index < _monthlySales.length) {
+                            return Text('M${index + 1}');
+                          }
+                          return Text('');
+                        },
                       ),
-                      SizedBox(height: 8.0),
-                      Text(entry.key),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(height: 16.0),
-
-            // Calculator section
-            TextField(
-              controller: _totalSalesController,
-              decoration: InputDecoration(labelText: 'Total Sales Amount (₱)'),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 8.0),
-            ListTile(
-              title: Text(_selectedDate == null
-                  ? 'Select Sales Date'
-                  : 'Selected Date: ${formatDate(_selectedDate!)}'),
-              trailing: Icon(Icons.calendar_today),
-              onTap: () => selectDate(context),
-            ),
-            TextField(
-              controller: _periodController,
-              decoration: InputDecoration(labelText: 'Forecast Period (in $_selectedTimeUnit)'),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 16.0),
-            DropdownButton<String>(
-              value: _selectedTimeUnit,
-              onChanged: (value) {
-                setState(() {
-                  _selectedTimeUnit = value!;
-                });
-              },
-              items: ['Days', 'Weeks', 'Months', 'Years']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: calculateForecast,
-              child: Text('Forecast'),
-            ),
-            if (_forecastedSales > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Forecasted Sales: ₱${_forecastedSales.toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                     ),
-                    if (_selectedDate != null) ...[
-                      SizedBox(height: 8.0),
-                      Text(
-                        'Forecast Target Date: ${formatDate(calculateFutureDate(int.tryParse(_periodController.text) ?? 0, _selectedTimeUnit))}',
-                        style: TextStyle(fontSize: 16.0),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: _monthlySales.asMap().entries.map((entry) {
+                        return FlSpot(entry.key.toDouble(), entry.value);
+                      }).toList(),
+                      isCurved: true,
+                      color: Colors.green.shade700,
+                      barWidth: 4,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true, 
+                        color: Colors.green.shade100.withOpacity(0.3),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
-            if (_growthPercentage > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Growth Percentage: ${_growthPercentage.toStringAsFixed(2)}%',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForecastTable() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Forecast Projections',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Table(
+              columnWidths: {
+                0: FlexColumnWidth(2),
+                1: FlexColumnWidth(3),
+              },
+              children: _forecastData.entries.map((entry) {
+                return TableRow(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(entry.key, style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        currencyFormat.format(entry.value),
+                        style: TextStyle(color: Colors.green.shade700),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGrowthRateCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Estimated Monthly Growth Rate',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '${_growthRate.toStringAsFixed(2)}%',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+            ),
           ],
         ),
       ),

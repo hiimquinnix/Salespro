@@ -157,7 +157,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Image.asset(
                     'lib/images/logo.png',
-                    width: 120,
+                    width: 140,
                     height: 100,
                   ),
                   SizedBox(height: 10),
