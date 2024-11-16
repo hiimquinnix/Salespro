@@ -1,43 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
-  String name;
-  String description;
-  String stocks;
-  String price;
-  String category;
+  final String id;
+  final String name;
+  final String description;
+  final double price;
+  final String category;
+  final int stocks;
 
-  // Constructor
   Product({
+    required this.id,
     required this.name,
     required this.description,
-    required this.stocks,
     required this.price,
     required this.category,
+    required this.stocks,
   });
 
-  // Create a Product from a Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    Map data = doc.data() as Map<String, dynamic>;
     return Product(
+      id: doc.id,
       name: data['name'] ?? '',
       description: data['description'] ?? '',
-      stocks: data['stocks'] ?? '',
-      price: data['price'] ?? '',
+      price: double.parse(data['price'] ?? '0'),
       category: data['category'] ?? '',
+      stocks: int.parse(data['stocks'] ?? '0'),
     );
   }
-
-  // Convert Product to Map for storage
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'description': description,
-      'stocks': stocks,
-      'price': price,
-      'category': category,
-    };
-  }
-
-  
 }
