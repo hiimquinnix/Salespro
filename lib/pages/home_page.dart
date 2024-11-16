@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:salespro/auth/auth_page.dart';
-import 'package:salespro/pages/forecasting_page.dart';
-import 'package:salespro/pages/checkout_page.dart'; // Make sure to import CheckoutPage
+import 'package:provider/provider.dart';
+import 'package:salespro/cart_provider.dart';
+import 'checkout_page.dart';
+import 'forecasting_page.dart';
+import 'auth/auth_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,15 +16,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser!;
-  List<String> categories = []; // List to hold categories from Firestore
+  List<String> categories = [];
   String selectedCategory = 'All';
-  String _searchQuery = ''; // Add search query state
+  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  Map<String, int> selectedItems = {}; // Holds selected items and their quantities
-  Map<String, int> stockQuantities = {}; // Real-time stock quantities
+  Map<String, int> stockQuantities = {};
 
-  // Fetch stock quantities in real-time
   void _fetchStockQuantities() {
     FirebaseFirestore.instance.collection('Items').snapshots().listen((snapshot) {
       final Map<String, int> newStockQuantities = {};
@@ -40,14 +40,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _fetchStockQuantities(); // Fetch initial stock quantities
-    _fetchCategories(); // Fetch categories from Firestore
-    _searchController.addListener(_onSearchChanged); // Listen for search input changes
+    _fetchStockQuantities();
+    _fetchCategories();
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    _searchController.dispose(); // Dispose of the controller when done
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -58,37 +58,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _fetchCategories() async {
-    // Fetch categories from Firestore collection
     final snapshot = await FirebaseFirestore.instance.collection('Categories').get();
     setState(() {
       categories = ['All'] + snapshot.docs.map((doc) => doc['name'].toString()).toList();
     });
-  }
-
-  void addItemToCheckout(String itemName, int quantity) {
-    setState(() {
-      if (quantity > 0 && quantity <= (stockQuantities[itemName] ?? 0)) {
-        selectedItems[itemName] = quantity; // Add or update the quantity when confirmed
-      } else {
-        selectedItems.remove(itemName); // Remove item if quantity is 0 or exceeds stock
-      }
-    });
-  }
-
-  void navigateToCheckout() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CheckoutPage(
-          selectedItems: selectedItems,
-          onItemRemoved: (itemName) {
-            setState(() {
-              selectedItems.remove(itemName);
-            });
-          },
-        ),
-      ),
-    );
   }
 
   Future<List<Map<String, dynamic>>> _fetchPOSItems() async {
@@ -117,20 +90,66 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("SalesPRO"),
+        title: Text(
+          "SalesPRO",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.green,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green, Colors.lightGreen],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart),
-            onPressed: navigateToCheckout,
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: Icon(Icons.shopping_cart, size: 28),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CheckoutPage()),
+                  );
+                },
+              ),
+              if (cart.itemCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '${cart.itemCount}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
       drawer: Drawer(
-        backgroundColor: Colors.white,
         child: Column(
           children: [
             DrawerHeader(
@@ -144,7 +163,7 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(height: 10),
                   Text(
                     'Signed in as: ' + user.email!,
-                    style: TextStyle(fontSize: 9, color: Colors.black),
+                    style: TextStyle(fontSize: 12, color: Colors.black),
                   ),
                 ],
               ),
@@ -173,8 +192,9 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushNamed(context, '/itemspage');
               },
             ),
+            Divider(),
             ListTile(
-              leading: Icon(Icons.logout),
+              leading: Icon(Icons.logout, color: Colors.red),
               title: Text("Sign Out"),
               onTap: () {
                 showDialog(
@@ -211,11 +231,11 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: Container(
-        padding: EdgeInsets.all(15.0),
-        child: Column(
-          children: [
-            Row(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
@@ -242,103 +262,99 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            SizedBox(height: 16.0),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Search...",
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
+          ),
+          Card(
+            elevation: 4,
+            margin: EdgeInsets.all(8),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search...",
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(width: 16.0),
-                Expanded(
-                  flex: 1,
-                  child: categories.isEmpty
-                      ? CircularProgressIndicator()
-                      : DropdownButtonFormField<String>(
-                          value: selectedCategory,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                          items: categories.map((String category) {
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedCategory = newValue!;
-                            });
-                          },
-                        ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.0),
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _fetchPOSItems(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No items available.'));
-                  }
-
-                  // Filter items based on category and search query
-                  final posItems = snapshot.data!.where((item) {
-                    final itemCategory = item['category'].toString();
-                    final itemName = item['name'].toLowerCase();
-                    final searchQuery = _searchQuery.toLowerCase();
-                    return (selectedCategory == 'All' || itemCategory == selectedCategory) &&
-                        itemName.contains(searchQuery);
-                  }).toList();
-
-                  return GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16.0,
-                      mainAxisSpacing: 16.0,
-                    ),
-                    itemCount: posItems.length,
-                    itemBuilder: (context, index) {
-                      final item = posItems[index];
-                      final itemName = item['name'];
-                      final stock = stockQuantities[itemName] ?? 0;
-                      return POSItem(
-                        itemName: itemName,
-                        price: item['price'],
-                        stock: stock,
-                        onItemSelect: addItemToCheckout,
-                      );
+                  SizedBox(width: 8),
+                  DropdownButton<String>(
+                    value: selectedCategory,
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedCategory = newValue!;
+                      });
                     },
-                  );
-                },
+                    items: categories.map<DropdownMenuItem<String>>((category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _fetchPOSItems(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text("No items available."));
+                }
+                final filteredItems = snapshot.data!.where((item) {
+                  final matchesCategory =
+                      selectedCategory == 'All' || item['category'] == selectedCategory;
+                  final matchesSearch = item['name']
+                      .toString()
+                      .toLowerCase()
+                      .contains(_searchQuery.toLowerCase());
+                  return matchesCategory && matchesSearch;
+                }).toList();
+
+                return GridView.builder(
+                  padding: EdgeInsets.all(8),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
+                  itemCount: filteredItems.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    return POSItem(
+                      itemName: item['name'],
+                      price: item['price'],
+                      stock: stockQuantities[item['name']] ?? 0,
+                      onItemSelect: (itemName, quantity) {
+                        if (quantity > 0) {
+                          cart.addItem(itemName, item['price']);
+                        } else {
+                          cart.removeItem(itemName);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class POSItem extends StatefulWidget {
+class POSItem extends StatelessWidget {
   final String itemName;
   final double price;
   final int stock;
@@ -352,60 +368,45 @@ class POSItem extends StatefulWidget {
   });
 
   @override
-  _POSItemState createState() => _POSItemState();
-}
-
-class _POSItemState extends State<POSItem> {
-  int quantity = 0;
-
-  void _incrementQuantity() {
-    if (quantity < widget.stock) {
-      setState(() {
-        quantity++;
-      });
-      widget.onItemSelect(widget.itemName, quantity);
-    }
-  }
-
-  void _decrementQuantity() {
-    if (quantity > 0) {
-      setState(() {
-        quantity--;
-      });
-      widget.onItemSelect(widget.itemName, quantity);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context);
+    final quantity = cart.items[itemName]?.quantity ?? 0;
+
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(widget.itemName, style: TextStyle(fontSize: 16.0)),
-          Text('₱${widget.price.toStringAsFixed(2)}', style: TextStyle(fontSize: 14.0)),
-          Text('Stock: ${widget.stock}', style: TextStyle(fontSize: 12.0, color: Colors.redAccent)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(Icons.remove),
-                onPressed: _decrementQuantity,
-                color: quantity > 0 ? Colors.black : Colors.grey,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(itemName, style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('₱${price.toStringAsFixed(2)}'),
+            Text(
+              stock > 0 ? 'In Stock: $stock' : 'Out of Stock',
+              style: TextStyle(
+                color: stock > 0 ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
               ),
-              Text('$quantity', style: TextStyle(fontSize: 18.0)),
-              IconButton(
-                icon: Icon(Icons.add),
-                onPressed: _incrementQuantity,
-                color: quantity < widget.stock ? Colors.black : Colors.grey,
-              ),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.remove, color: Colors.red),
+                  onPressed: quantity > 0 ? () => onItemSelect(itemName, quantity - 1) : null,
+                ),
+                Text('$quantity'),
+                IconButton(
+                  icon: Icon(Icons.add, color: Colors.green),
+                  onPressed: stock > quantity
+                      ? () => onItemSelect(itemName, quantity + 1)
+                      : null,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

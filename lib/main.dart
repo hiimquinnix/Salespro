@@ -7,8 +7,10 @@ import 'package:salespro/pages/main_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:salespro/pages/home_page.dart';
 import 'package:salespro/pages/receipts_page.dart';
+import 'package:provider/provider.dart';
+import 'cart_provider.dart';
 
-void main() async { 
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase based on the platform (web or non-web)
@@ -27,7 +29,12 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (ctx) => CartProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -43,8 +50,10 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(
               showRegisterPage: () {},
             ),
-        '/salespage': (context) => const HomePage(),
-        '/receiptpage': (context) => const ReceiptsPage(receipts: [],),
+        '/salespage': (context) =>  HomePage(),
+        '/receiptpage': (context) => const ReceiptsPage(
+              receipts: [],
+            ),
         '/itemspage': (context) => const ItemsPage(),
         '/items': (context) => Items(
               updateCategories: (List<String> newCategories) {},

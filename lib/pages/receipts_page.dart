@@ -23,13 +23,11 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
 
   // Fetch receipts from Firestore and parse them
   Future<List<Map<String, dynamic>>> fetchReceipts() async {
-    // Reference the 'Receipt' collection in Firebase
     final snapshot = await FirebaseFirestore.instance.collection('Receipt').get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
       return {
         'referenceNumber': data['referenceNumber'] ?? '',
-        // Use the date directly from Firestore (without changing it to today)
         'date': (data['date'] is Timestamp) ? (data['date'] as Timestamp).toDate() : DateTime.now(),
         'time': data['time'] ?? '',
         'dayOfWeek': data['dayOfWeek'] ?? '',
@@ -58,7 +56,6 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
         }).toList();
 
       case 'Year':
-        // Filtering by user-selected year (you can set it via an input box)
         int selectedYear = int.tryParse(yearController.text) ?? now.year;
         return receipts.where((receipt) {
           DateTime receiptDate = receipt['date'];
@@ -85,7 +82,6 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
         title: const Text("Receipts History"),
         backgroundColor: Colors.green,
         actions: [
-          // Dropdown to filter by Today, Week, Month, or Year
           PopupMenuButton<String>(
             onSelected: (String value) {
               setState(() {
@@ -106,7 +102,6 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
       ),
       body: Column(
         children: [
-          // Year and Month Inputs for custom filtering
           if (selectedTimeFilter == 'Year' || selectedTimeFilter == 'Month') ...[
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -144,7 +139,7 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
             ),
           ],
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(  // FutureBuilder to handle data fetching
+            child: FutureBuilder<List<Map<String, dynamic>>>(  
               future: receiptsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -164,21 +159,48 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
                   itemCount: receipts.length,
                   itemBuilder: (context, index) {
                     final receipt = receipts[index];
-                    return ListTile(
-                      leading: const Icon(Icons.receipt, color: Colors.green),
-                      title: Text("Reference: ${receipt['referenceNumber']}"),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Date: ${DateFormat('yyyy-MM-dd').format(receipt['date'])}"),
-                          Text("Time: ${receipt['time']}"),
-                          Text("Day: ${receipt['dayOfWeek']}"),
-                          Text("Total: ₱${receipt['totalAmount'].toStringAsFixed(2)}"),
-                          Text("Received: ₱${receipt['receivedAmount'].toStringAsFixed(2)}"),
-                          Text("Balance: ₱${receipt['balance'].toStringAsFixed(2)}"),
-                        ],
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      isThreeLine: true,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        child: ListTile(
+                          leading: const Icon(Icons.receipt, color: Colors.green),
+                          title: Text(
+                            "Reference: ${receipt['referenceNumber']}",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Date: ${DateFormat('yyyy-MM-dd').format(receipt['date'])}",
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                Text("Time: ${receipt['time']}", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                Text("Day: ${receipt['dayOfWeek']}", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text("Total: ₱${receipt['totalAmount'].toStringAsFixed(2)}",
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green)),
+                                    Text("Received: ₱${receipt['receivedAmount'].toStringAsFixed(2)}",
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text("Balance: ₱${receipt['balance'].toStringAsFixed(2)}",
+                                    style: TextStyle(fontSize: 12, color: Colors.red[600])),
+                              ],
+                            ),
+                          ),
+                          isThreeLine: true,
+                        ),
+                      ),
                     );
                   },
                 );
