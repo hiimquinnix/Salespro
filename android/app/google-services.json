@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "421368527170",
-    "project_id": "salespro-66aed",
-    "storage_bucket": "salespro-66aed.appspot.com"
+    "project_number": "295840565054",
+    "project_id": "salespro-9a9f4",
+    "storage_bucket": "salespro-9a9f4.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:421368527170:android:314b38cb7f4bb0270930db",
+        "mobilesdk_app_id": "1:295840565054:android:782e9c504249c3d2a1ce6f",
         "android_client_info": {
           "package_name": "com.example.salespro"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCJYWga1yu-pFieh2xo2foo1HCtptxr-N4"
+          "current_key": "AIzaSyCLN20RTjs4f6okY0-S8N74bMifsaprYkY"
         }
       ],
       "services": {
