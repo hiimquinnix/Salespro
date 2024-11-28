@@ -17,6 +17,10 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
   bool _isLoading = true;
   late AnimationController _animationController;
   late Animation<double> _animation;
+  List<MapEntry<String, int>> _topSellingItems = [];
+  Map<String, int> _stockLevels = {};
+  List<MapEntry<String, int>> _lowStockItems = [];
+  bool _isLoadingStock = true;
 
   final currencyFormat = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
 
@@ -33,6 +37,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
     );
     _animationController.repeat(reverse: true);
     _fetchSalesData();
+    _fetchStockLevels();
   }
 
   @override
@@ -43,15 +48,16 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
 
   Future<void> _fetchSalesData() async {
     try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
+      QuerySnapshot receiptSnapshot = await FirebaseFirestore.instance
           .collection('Receipt')
           .orderBy('date', descending: true)
           .limit(12)
           .get();
 
       Map<String, double> monthlySalesMap = {};
+      Map<String, int> itemSalesCount = {};
 
-      snapshot.docs.forEach((doc) {
+      for (var doc in receiptSnapshot.docs) {
         DateTime date;
         if (doc['date'] is Timestamp) {
           date = (doc['date'] as Timestamp).toDate();
@@ -59,22 +65,44 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
           date = DateTime.parse(doc['date']);
         } else {
           print('Unsupported date format for document ${doc.id}');
-          return;
+          continue;
         }
 
         String monthKey = DateFormat('yyyy-MM').format(date);
-        double amount = (doc['totalAmount'] is num) 
-            ? (doc['totalAmount'] as num).toDouble() 
+        double amount = (doc['totalAmount'] is num)
+            ? (doc['totalAmount'] as num).toDouble()
             : double.tryParse(doc['totalAmount'].toString()) ?? 0.0;
 
         monthlySalesMap.update(monthKey, (value) => value + amount, ifAbsent: () => amount);
-      });
+
+        var items = doc['items'];
+        if (items != null) {
+          (items as Map<String, dynamic>).forEach((key, itemData) {
+            if (itemData is Map<String, dynamic>) {
+              String itemName = itemData['name'] ?? '';
+              int quantity = (itemData['quantity'] is num)
+                  ? (itemData['quantity'] as num).toInt()
+                  : 1;
+
+              if (itemName.isNotEmpty) {
+                itemSalesCount.update(
+                  itemName,
+                  (value) => value + quantity,
+                  ifAbsent: () => quantity
+                );
+              }
+            }
+          });
+        }
+      }
+
+      _topSellingItems = itemSalesCount.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      _topSellingItems = _topSellingItems.take(3).toList();
 
       setState(() {
         _monthlySales = monthlySalesMap.values.toList().reversed.toList();
       });
-
-      await Future.delayed(Duration(seconds: 3));
 
       _calculateForecast();
       setState(() {
@@ -87,6 +115,52 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
       );
       setState(() {
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchStockLevels() async {
+    try {
+      QuerySnapshot itemsSnapshot = await FirebaseFirestore.instance
+          .collection('Items')
+          .get();
+
+      Map<String, int> stockLevels = {};
+      List<MapEntry<String, int>> lowStockItems = [];
+
+      for (var doc in itemsSnapshot.docs) {
+        String itemName = doc['name'] ?? '';
+        int stockQuantity = 0;
+        var rawStock = doc['stocks'];
+        if (rawStock != null) {
+          if (rawStock is num) {
+            stockQuantity = rawStock.toInt();
+          } else if (rawStock is String) {
+            stockQuantity = int.tryParse(rawStock) ?? 0;
+          }
+        }
+
+
+        if (itemName.isNotEmpty) {
+          stockLevels[itemName] = stockQuantity;
+          if (stockQuantity < 10) { // Assuming low stock threshold is 10
+            lowStockItems.add(MapEntry(itemName, stockQuantity));
+          }
+        }
+      }
+
+      // Sort low stock items by quantity
+      lowStockItems.sort((a, b) => a.value.compareTo(b.value));
+
+      setState(() {
+        _stockLevels = stockLevels;
+        _lowStockItems = lowStockItems;
+        _isLoadingStock = false;
+      });
+    } catch (e) {
+      print('Error fetching stock levels: $e');
+      setState(() {
+        _isLoadingStock = false;
       });
     }
   }
@@ -140,6 +214,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
+                    width: double.infinity,
                     padding: EdgeInsets.all(16),
                     color: Colors.green.shade700,
                     child: Column(
@@ -162,17 +237,61 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildTopSellingItemsCard(),
+                        SizedBox(height: 24),
                         _buildSalesChart(),
                         SizedBox(height: 24),
                         _buildForecastTable(),
                         SizedBox(height: 24),
                         _buildGrowthRateCard(),
+                        SizedBox(height: 24),
+                        _buildStockRecommendationCard(),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildTopSellingItemsCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Top 3 Selling Items',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            ..._topSellingItems.asMap().entries.map((entry) {
+              int index = entry.key;
+              MapEntry<String, int> item = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${index + 1}. ${item.key}',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Sold: ${item.value}',
+                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
     );
   }
 
@@ -222,7 +341,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
                       isStrokeCapRound: true,
                       dotData: FlDotData(show: false),
                       belowBarData: BarAreaData(
-                        show: true, 
+                        show: true,
                         color: Colors.green.shade100.withOpacity(0.3),
                       ),
                     ),
@@ -294,13 +413,120 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  _growthRate >= 0 ? Icons.trending_up : Icons.trending_down,
+                  size: 32,
+                  color: _growthRate >= 0 ? Colors.green : Colors.red,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  '${_growthRate.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: _growthRate >= 0 ? Colors.green.shade700 : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
             Text(
-              '${_growthRate.toStringAsFixed(2)}%',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+              _growthRate >= 0
+                  ? 'Your business is growing!'
+                  : 'Your business is facing some challenges. Consider reviewing your strategies.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildStockRecommendationCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Stock Recommendations',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (_isLoadingStock)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade700),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: 16),
+            if (_isLoadingStock)
+              Text('Loading stock information...')
+            else if (_lowStockItems.isEmpty)
+              Text(
+                'All items are well-stocked!',
+                style: TextStyle(fontSize: 16, color: Colors.green.shade700),
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Consider restocking the following items:',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    height: 150,
+                    child: ListView.builder(
+                      itemCount: _lowStockItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _lowStockItems[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.key,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                'Stock: ${item.value}',
+                                style: TextStyle(
+                                  color: item.value < 10 ? Colors.red : Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

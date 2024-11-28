@@ -192,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.deepPurple,
+                          color: Colors.green,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
@@ -243,7 +243,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Text(
                           'Register now',
                           style: TextStyle(
-                            color: Colors.blue,
+                            color: Colors.green,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
