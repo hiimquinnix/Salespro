@@ -1,13 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:salespro/pages/items.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:salespro/login.dart';
+import 'package:salespro/pages/home_page.dart';
+import 'package:salespro/pages/items.dart';
 import 'package:salespro/pages/items_page.dart';
 import 'package:salespro/pages/main_pages.dart';
-import 'package:flutter/material.dart';
-import 'package:salespro/pages/home_page.dart';
 import 'package:salespro/pages/receipts_page.dart';
-import 'package:provider/provider.dart';
+import 'package:salespro/services/storages/storage_service.dart';
 import 'cart_provider.dart';
 
 void main() async {
@@ -30,8 +31,11 @@ void main() async {
   }
 
   runApp(
-    ChangeNotifierProvider(
-      create: (ctx) => CartProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => StorageService()),
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -46,17 +50,18 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: MainPages(),
       routes: {
-        // Routes for navigation
         '/login': (context) => LoginPage(
-              showRegisterPage: () {},
+              showRegisterPage: () {}, // Adjust your registration handler
             ),
-        '/salespage': (context) =>  HomePage(),
+        '/salespage': (context) => HomePage(),
         '/receiptpage': (context) => const ReceiptsPage(
-              receipts: [],
+              receipts: [], // Pass appropriate receipts data
             ),
         '/itemspage': (context) => const ItemsPage(),
         '/items': (context) => Items(
-              updateCategories: (List<String> newCategories) {},
+              updateCategories: (List<String> newCategories) {
+                // Handle category updates
+              },
             ),
       },
     );

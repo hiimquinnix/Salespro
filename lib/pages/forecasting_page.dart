@@ -143,7 +143,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
 
         if (itemName.isNotEmpty) {
           stockLevels[itemName] = stockQuantity;
-          if (stockQuantity < 10) { // Assuming low stock threshold is 10
+          if (stockQuantity < 20) { // Assuming low stock threshold is 10
             lowStockItems.add(MapEntry(itemName, stockQuantity));
           }
         }

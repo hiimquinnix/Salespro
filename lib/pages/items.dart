@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:salespro/model/product_model.dart';
+import 'package:salespro/services/storages/storage_service.dart';
 
 class Items extends StatefulWidget {
   const Items({Key? key, required this.updateCategories}) : super(key: key);
@@ -12,6 +14,28 @@ class Items extends StatefulWidget {
 }
 
 class _ItemsState extends State<Items> {
+  @override
+  void initState() {
+    super.initState();
+
+    fetchImages();
+  }
+
+  Future<void> fetchImages() async {
+    await Provider.of<StorageService>(context, listen: false).fetchImages();
+  }
+
+  @override 
+  Widget build(BuildContext context) {
+    return Consumer<StorageService> (
+      builder: (context, StorageService, child) {
+
+        final List<String> imageUrls = StorageService.imageUrls;
+
+      },
+    );
+  }
+}
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final List<String> _categories = [
     'Noodles',
@@ -148,7 +172,8 @@ class _ItemsState extends State<Items> {
                       builder: (BuildContext context) {
                         return AlertDialog(
                           title: Text("Confirm"),
-                          content: Text("Are you sure you want to delete this item?"),
+                          content: Text(
+                              "Are you sure you want to delete this item?"),
                           actions: <Widget>[
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(false),
@@ -287,7 +312,7 @@ class _ItemsState extends State<Items> {
       ),
     );
   }
-}
+
 
 class AddItemDialog extends StatefulWidget {
   final Function(String, String, double, String, int) onAddItem;
@@ -374,7 +399,8 @@ class _AddItemDialogState extends State<AddItemDialog> {
                 price > 0 &&
                 _selectedCategory.isNotEmpty &&
                 stocks >= 0) {
-              widget.onAddItem(name, description, price, _selectedCategory, stocks);
+              widget.onAddItem(
+                  name, description, price, _selectedCategory, stocks);
               Navigator.pop(context);
             }
           },
@@ -412,9 +438,12 @@ class _EditItemDialogState extends State<EditItemDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product.name);
-    _descriptionController = TextEditingController(text: widget.product.description);
-    _priceController = TextEditingController(text: widget.product.price.toString());
-    _stocksController = TextEditingController(text: widget.product.stocks.toString());
+    _descriptionController =
+        TextEditingController(text: widget.product.description);
+    _priceController =
+        TextEditingController(text: widget.product.price.toString());
+    _stocksController =
+        TextEditingController(text: widget.product.stocks.toString());
     _selectedCategory = widget.product.category;
   }
 
@@ -460,6 +489,10 @@ class _EditItemDialogState extends State<EditItemDialog> {
                   .toList(),
               decoration: InputDecoration(labelText: 'Category'),
             ),
+            ElevatedButton(
+              onPressed: () => StorageService.uploadImage(),
+              child: Text('Change Image'),
+            ),
           ],
         ),
       ),
@@ -482,7 +515,8 @@ class _EditItemDialogState extends State<EditItemDialog> {
                 price > 0 &&
                 _selectedCategory.isNotEmpty &&
                 stocks >= 0) {
-              widget.onEditItem(widget.product.id, name, description, price, _selectedCategory, stocks);
+              widget.onEditItem(widget.product.id, name, description, price,
+                  _selectedCategory, stocks);
               Navigator.pop(context);
             }
           },
@@ -492,3 +526,4 @@ class _EditItemDialogState extends State<EditItemDialog> {
     );
   }
 }
+  
