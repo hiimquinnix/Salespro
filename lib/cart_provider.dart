@@ -45,20 +45,21 @@ class CartProvider with ChangeNotifier {
   }
 
   void decrementItem(String name) {
-    if (!_items.containsKey(name)) return;
-    if (_items[name]!.quantity > 1) {
-      _items.update(
-        name,
-        (existingItem) => CartItem(
-          name: existingItem.name,
-          price: existingItem.price,
-          quantity: existingItem.quantity - 1,
-        ),
-      );
-    } else {
-      _items.remove(name);
+    if (_items.containsKey(name)) {
+      if (_items[name]!.quantity > 1) {
+        _items.update(
+          name,
+          (existingItem) => CartItem(
+            name: existingItem.name,
+            price: existingItem.price,
+            quantity: existingItem.quantity - 1,
+          ),
+        );
+      } else {
+        _items.remove(name);
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   void clear() {
@@ -85,3 +86,4 @@ class CartProvider with ChangeNotifier {
     }
   }
 }
+

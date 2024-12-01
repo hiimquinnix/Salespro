@@ -1,14 +1,14 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:salespro/cart_provider.dart';
 import 'checkout_page.dart';
 import 'forecasting_page.dart';
 import 'auth/auth_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -149,7 +149,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      drawer: Drawer(
+     drawer: Drawer(
         child: Column(
           children: [
             DrawerHeader(
@@ -242,16 +242,11 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       padding: EdgeInsets.symmetric(vertical: 16.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
                     ),
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => ForecastPage(),
-                        ),
+                        MaterialPageRoute(builder: (context) => ForecastPage()),
                       );
                     },
                     child: Text(
@@ -263,42 +258,36 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          Card(
-            elevation: 4,
-            margin: EdgeInsets.all(8),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: "Search...",
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Search...",
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedCategory = newValue!;
-                      });
-                    },
-                    items: categories.map<DropdownMenuItem<String>>((category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: selectedCategory,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedCategory = newValue!;
+                    });
+                  },
+                  items: categories.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -312,12 +301,8 @@ class _HomePageState extends State<HomePage> {
                   return Center(child: Text("No items available."));
                 }
                 final filteredItems = snapshot.data!.where((item) {
-                  final matchesCategory =
-                      selectedCategory == 'All' || item['category'] == selectedCategory;
-                  final matchesSearch = item['name']
-                      .toString()
-                      .toLowerCase()
-                      .contains(_searchQuery.toLowerCase());
+                  final matchesCategory = selectedCategory == 'All' || item['category'] == selectedCategory;
+                  final matchesSearch = item['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
                   return matchesCategory && matchesSearch;
                 }).toList();
 
@@ -325,8 +310,9 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.all(8),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
                   ),
                   itemCount: filteredItems.length,
                   itemBuilder: (context, index) {
@@ -335,13 +321,6 @@ class _HomePageState extends State<HomePage> {
                       itemName: item['name'],
                       price: item['price'],
                       stock: stockQuantities[item['name']] ?? 0,
-                      onItemSelect: (itemName, quantity) {
-                        if (quantity > 0) {
-                          cart.addItem(itemName, item['price']);
-                        } else {
-                          cart.removeItem(itemName);
-                        }
-                      },
                     );
                   },
                 );
@@ -358,13 +337,11 @@ class POSItem extends StatelessWidget {
   final String itemName;
   final double price;
   final int stock;
-  final Function(String, int) onItemSelect;
 
   POSItem({
     required this.itemName,
     required this.price,
     required this.stock,
-    required this.onItemSelect,
   });
 
   @override
@@ -373,14 +350,17 @@ class POSItem extends StatelessWidget {
     final quantity = cart.items[itemName]?.quantity ?? 0;
 
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 4,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(itemName, style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              itemName,
+              style: TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
             Text('₱${price.toStringAsFixed(2)}'),
             Text(
               stock > 0 ? 'In Stock: $stock' : 'Out of Stock',
@@ -390,17 +370,19 @@ class POSItem extends StatelessWidget {
               ),
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
                   icon: Icon(Icons.remove, color: Colors.red),
-                  onPressed: quantity > 0 ? () => onItemSelect(itemName, quantity - 1) : null,
+                  onPressed: quantity > 0
+                      ? () => cart.decrementItem(itemName)
+                      : null,
                 ),
                 Text('$quantity'),
                 IconButton(
                   icon: Icon(Icons.add, color: Colors.green),
                   onPressed: stock > quantity
-                      ? () => onItemSelect(itemName, quantity + 1)
+                      ? () => cart.addItem(itemName, price)
                       : null,
                 ),
               ],
@@ -411,3 +393,4 @@ class POSItem extends StatelessWidget {
     );
   }
 }
+

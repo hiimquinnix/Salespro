@@ -209,3 +209,4 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 }
+
