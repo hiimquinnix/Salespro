@@ -3,7 +3,7 @@ import 'package:salespro/login.dart';
 import 'package:salespro/register_page.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({Key? key}) : super(key: key);
+  const AuthPage({super.key});
 
   @override
   State<AuthPage> createState() => _AuthPageState();

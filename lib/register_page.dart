@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
-  const RegisterPage({Key? key, required this.showLoginPage}) : super(key: key);
+  const RegisterPage({super.key, required this.showLoginPage});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -237,7 +237,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 25.0),
                       child: Text(
                         _errorMessage,
-                        style: TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red),
                       ),
                     ),
                   

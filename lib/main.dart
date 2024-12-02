@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(
               showRegisterPage: () {},
             ),
-        '/salespage': (context) =>  HomePage(),
+        '/salespage': (context) =>  const HomePage(),
         '/receiptpage': (context) => const ReceiptsPage(
               receipts: [],
             ),

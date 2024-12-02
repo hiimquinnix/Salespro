@@ -13,7 +13,7 @@ class ItemsPage extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
-            leading: Icon(Icons.list),
+            leading: const Icon(Icons.list),
             title: const Text('Items'),
             onTap: () {
                 Navigator.pop(context);
@@ -25,5 +25,3 @@ class ItemsPage extends StatelessWidget {
     );
   }
 }
-
-void main() => runApp(MaterialApp(home: ItemsPage()));

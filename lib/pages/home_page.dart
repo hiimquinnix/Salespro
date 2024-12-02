@@ -1,4 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import 'package:salespro/cart_provider.dart';
 import 'checkout_page.dart';
 import 'forecasting_page.dart';
 import 'auth/auth_page.dart';
+import 'pos_item.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -77,7 +79,7 @@ class _HomePageState extends State<HomePage> {
         };
       }).toList();
     } catch (e) {
-      print("Error fetching POS items: $e");
+      log("Error fetching POS items: $e");
       return [];
     }
   }
@@ -194,35 +196,35 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushNamed(context, '/itemspage');
               },
             ),
-            Divider(),
+            const Divider(),
             ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: Text("Sign Out"),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Sign Out"),
               onTap: () {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: Text('Confirm Logout'),
-                      content: Text('Are you sure you want to log out?'),
+                      title: const Text('Confirm Logout'),
+                      content: const Text('Are you sure you want to log out?'),
                       actions: [
                         TextButton(
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
-                          child: Text('Cancel'),
+                          child: const Text('Cancel'),
                         ),
                         TextButton(
                           onPressed: () {
                             FirebaseAuth.instance.signOut();
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
-                                builder: (context) => AuthPage(),
+                                builder: (context) => const AuthPage(),
                               ),
                               (route) => false,
                             );
                           },
-                          child: Text('Confirm'),
+                          child: const Text('Confirm'),
                         ),
                       ],
                     );
@@ -243,15 +245,15 @@ class _HomePageState extends State<HomePage> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
                     ),
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => ForecastPage()),
+                        MaterialPageRoute(builder: (context) => const ForecastPage()),
                       );
                     },
-                    child: Text(
+                    child: const Text(
                       "Forecasting",
                       style: TextStyle(fontSize: 18.0, color: Colors.white),
                     ),
@@ -267,14 +269,14 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Search...",
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 DropdownButton<String>(
                   value: selectedCategory,
                   onChanged: (String? newValue) {
@@ -331,75 +333,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class POSItem extends StatelessWidget {
-  final String itemName;
-  final double price;
-  final int stock;
-  final String imageUrl;
-
-  const POSItem({
-    super.key,
-    required this.itemName,
-    required this.price,
-    required this.stock,
-    required this.imageUrl
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cart = Provider.of<CartProvider>(context);
-    final quantity = cart.items[itemName]?.quantity ?? 0;
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CachedNetworkImage(
-                imageUrl: imageUrl,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-            ),
-            Text(
-              itemName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            Text('₱${price.toStringAsFixed(2)}'),
-            Text(
-              stock > 0 ? 'In Stock: $stock' : 'Out of Stock',
-              style: TextStyle(
-                color: stock > 0 ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.remove, color: Colors.red),
-                  onPressed: quantity > 0
-                      ? () => cart.decrementItem(itemName)
-                      : null,
-                ),
-                Text('$quantity'),
-                IconButton(
-                  icon: Icon(Icons.add, color: Colors.green),
-                  onPressed: stock > quantity
-                      ? () => cart.addItem(itemName, price)
-                      : null,
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

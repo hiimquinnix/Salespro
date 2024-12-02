@@ -108,7 +108,7 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
               child: TextField(
                 controller: yearController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Enter Year (e.g. 2024)",
                   border: OutlineInputBorder(),
                 ),
@@ -126,7 +126,7 @@ class _ReceiptsPageState extends State<ReceiptsPage> {
               child: TextField(
                 controller: monthController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Enter Month (1-12)",
                   border: OutlineInputBorder(),
                 ),

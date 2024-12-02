@@ -4,7 +4,7 @@ import 'package:salespro/pages/auth/auth_page.dart';
 import 'package:salespro/pages/home_page.dart';
 
 class MainPages extends StatelessWidget {
-  MainPages({super.key});
+  const MainPages({super.key});
 
   @override
   Widget build(BuildContext context) {

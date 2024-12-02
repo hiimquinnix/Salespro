@@ -30,7 +30,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1500),
     );
     _animation = CurvedAnimation(
       parent: _animationController,
@@ -112,7 +112,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
     } catch (e) {
       print('Error fetching sales data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching sales data. Please try again later.')),
+        const SnackBar(content: Text('Error fetching sales data. Please try again later.')),
       );
       setState(() {
         _isLoading = false;
@@ -238,13 +238,13 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildTopSellingItemsCard(),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                         _buildSalesChart(),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                         _buildForecastTable(),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                         _buildGrowthRateCard(),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                         _buildStockRecommendationCard(),
                       ],
                     ),
@@ -264,11 +264,11 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Top 3 Selling Items',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ..._topSellingItems.asMap().entries.map((entry) {
               int index = entry.key;
               MapEntry<String, int> item = entry.value;
@@ -279,7 +279,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                   children: [
                     Text(
                       '${index + 1}. ${item.key}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                     Text(
                       'Sold: ${item.value}',
@@ -288,7 +288,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -304,18 +304,18 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Historical Monthly Sales',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
-            Container(
+            const SizedBox(height: 16),
+            SizedBox(
               height: 200,
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: false),
+                  gridData: const FlGridData(show: false),
                   titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -324,7 +324,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                           if (index % 2 == 0 && index < _monthlySales.length) {
                             return Text('M${index + 1}');
                           }
-                          return Text('');
+                          return const Text('');
                         },
                       ),
                     ),
@@ -339,7 +339,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                       color: Colors.green.shade700,
                       barWidth: 4,
                       isStrokeCapRound: true,
-                      dotData: FlDotData(show: false),
+                      dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
                         color: Colors.green.shade100.withOpacity(0.3),
@@ -364,22 +364,22 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Forecast Projections',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Table(
-              columnWidths: {
-                0: FlexColumnWidth(2),
-                1: FlexColumnWidth(3),
+              columnWidths: const {
+                0: const FlexColumnWidth(2),
+                1: const FlexColumnWidth(3),
               },
               children: _forecastData.entries.map((entry) {
                 return TableRow(
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(entry.key, style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -408,11 +408,11 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Estimated Monthly Growth Rate',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Icon(
@@ -420,7 +420,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                   size: 32,
                   color: _growthRate >= 0 ? Colors.green : Colors.red,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   '${_growthRate.toStringAsFixed(2)}%',
                   style: TextStyle(
@@ -431,7 +431,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               _growthRate >= 0
                   ? 'Your business is growing!'
@@ -459,7 +459,7 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Stock Recommendations',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -474,9 +474,9 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
                   ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             if (_isLoadingStock)
-              Text('Loading stock information...')
+              const Text('Loading stock information...')
             else if (_lowStockItems.isEmpty)
               Text(
                 'All items are well-stocked!',
@@ -486,12 +486,12 @@ class ForecastPageState extends State<ForecastPage> with SingleTickerProviderSta
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Consider restocking the following items:',
                     style: TextStyle(fontSize: 16),
                   ),
-                  SizedBox(height: 8),
-                  Container(
+                  const SizedBox(height: 8),
+                  SizedBox(
                     height: 150,
                     child: ListView.builder(
                       itemCount: _lowStockItems.length,

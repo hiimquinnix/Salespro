@@ -7,6 +7,7 @@ class Product {
   final double price;
   final String category;
   final int stocks;
+  final String imageUrl;
 
   Product({
     required this.id,
@@ -15,6 +16,7 @@ class Product {
     required this.price,
     required this.category,
     required this.stocks,
+    required this.imageUrl,
   });
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
@@ -26,6 +28,7 @@ class Product {
       price: double.parse(data['price'] ?? '0'),
       category: data['category'] ?? '',
       stocks: int.parse(data['stocks'] ?? '0'),
+      imageUrl: data['image_url'] ?? ''
     );
   }
 }

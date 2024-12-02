@@ -4,7 +4,7 @@ import 'package:salespro/pages/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
-  const LoginPage({Key? key, required this.showRegisterPage}) : super(key: key);
+  const LoginPage({super.key, required this.showRegisterPage});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       // If successful, navigate to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  HomePage()),
+        MaterialPageRoute(builder: (context) =>  const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
       Navigator.of(context).pop(); // Close the loading indicator dialog

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -82,7 +84,7 @@ class CartProvider with ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error updating stock: $e');
+      log('Error updating stock: $e');
     }
   }
 }

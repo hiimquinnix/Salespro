@@ -5,13 +5,15 @@ import 'package:intl/intl.dart';
 import 'package:salespro/cart_provider.dart';
 
 class CheckoutPage extends StatelessWidget {
+  const CheckoutPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<CartProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Checkout"),
+        title: const Text("Checkout"),
         backgroundColor: Colors.green,
       ),
       body: Padding(
@@ -19,12 +21,12 @@ class CheckoutPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Selected Items", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
+            const Text("Selected Items", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView.separated(
                 itemCount: cart.items.length,
-                separatorBuilder: (context, index) => Divider(),
+                separatorBuilder: (context, index) => const Divider(),
                 itemBuilder: (context, index) {
                   final item = cart.items.values.elementAt(index);
                   return Row(
@@ -35,15 +37,15 @@ class CheckoutPage extends StatelessWidget {
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.remove),
+                            icon: const Icon(Icons.remove),
                             onPressed: () => cart.decrementItem(item.name),
                           ),
                           IconButton(
-                            icon: Icon(Icons.add),
+                            icon: const Icon(Icons.add),
                             onPressed: () => cart.addItem(item.name, item.price),
                           ),
                           IconButton(
-                            icon: Icon(Icons.delete),
+                            icon: const Icon(Icons.delete),
                             onPressed: () => cart.removeItem(item.name),
                           ),
                         ],
@@ -53,18 +55,18 @@ class CheckoutPage extends StatelessWidget {
                 },
               ),
             ),
-            Divider(),
+            const Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Total: ₱${cart.totalAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 18)),
+                  Text("Total: ₱${cart.totalAmount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18)),
                   ElevatedButton(
                     onPressed: () {
                       _showReceivedAmountDialog(context, cart);
                     },
-                    child: Text("Proceed to Payment"),
+                    child: const Text("Proceed to Payment"),
                   ),
                 ],
               ),
@@ -76,36 +78,36 @@ class CheckoutPage extends StatelessWidget {
   }
 
   void _showReceivedAmountDialog(BuildContext context, CartProvider cart) {
-    final TextEditingController _receivedAmountController = TextEditingController();
+    final TextEditingController receivedAmountController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Enter Received Amount"),
+          title: const Text("Enter Received Amount"),
           content: TextField(
-            controller: _receivedAmountController,
+            controller: receivedAmountController,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: "₱0.00"),
+            decoration: const InputDecoration(hintText: "₱0.00"),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () {
-                double receivedAmount = double.tryParse(_receivedAmountController.text) ?? 0;
+                double receivedAmount = double.tryParse(receivedAmountController.text) ?? 0;
                 if (receivedAmount < cart.totalAmount) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Received amount is less than total price')),
+                    const SnackBar(content: Text('Received amount is less than total price')),
                   );
                 } else {
                   Navigator.of(context).pop();
                   _showPaymentSummaryDialog(context, cart, receivedAmount);
                 }
               },
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -121,12 +123,12 @@ class CheckoutPage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Payment Summary"),
+          title: const Text("Payment Summary"),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Divider(),
+              const Divider(),
               ...cart.items.values.map((item) {
                 double itemTotal = item.price * item.quantity;
                 return Padding(
@@ -139,26 +141,26 @@ class CheckoutPage extends StatelessWidget {
                     ],
                   ),
                 );
-              }).toList(),
-              Divider(),
+              }),
+              const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Total Amount Due", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text("Total Amount Due", style: TextStyle(fontWeight: FontWeight.bold)),
                   Text("₱${cart.totalAmount.toStringAsFixed(2)}"),
                 ],
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Amount Received"),
+                  const Text("Amount Received"),
                   Text("₱${receivedAmount.toStringAsFixed(2)}"),
                 ],
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Change", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                  const Text("Change", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                   Text("₱${balance.toStringAsFixed(2)}"),
                 ],
               ),
@@ -167,7 +169,7 @@ class CheckoutPage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
@@ -198,10 +200,10 @@ class CheckoutPage extends StatelessWidget {
                 // Clear cart after checkout
                 cart.clear();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Checkout completed successfully!')),
+                  const SnackBar(content: Text('Checkout completed successfully!')),
                 );
               },
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
