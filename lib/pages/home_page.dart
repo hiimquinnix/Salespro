@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +9,7 @@ import 'forecasting_page.dart';
 import 'auth/auth_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -72,6 +73,7 @@ class _HomePageState extends State<HomePage> {
           'name': doc['name'],
           'price': _convertToDouble(doc['price']),
           'category': doc['category'],
+          'image_url': doc['image_url']
         };
       }).toList();
     } catch (e) {
@@ -94,13 +96,13 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "SalesPRO",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.green, Colors.lightGreen],
               begin: Alignment.topLeft,
@@ -113,7 +115,7 @@ class _HomePageState extends State<HomePage> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: Icon(Icons.shopping_cart, size: 28),
+                icon: const Icon(Icons.shopping_cart, size: 28),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -126,18 +128,18 @@ class _HomePageState extends State<HomePage> {
                   right: 8,
                   top: 8,
                   child: Container(
-                    padding: EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    constraints: BoxConstraints(
+                    constraints: const BoxConstraints(
                       minWidth: 16,
                       minHeight: 16,
                     ),
                     child: Text(
                       '${cart.itemCount}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
                       ),
@@ -160,33 +162,33 @@ class _HomePageState extends State<HomePage> {
                     width: 140,
                     height: 100,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    'Signed in as: ' + user.email!,
-                    style: TextStyle(fontSize: 12, color: Colors.black),
+                    'Signed in as: ${user.email!}',
+                    style: const TextStyle(fontSize: 12, color: Colors.black),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: Icon(Icons.shopping_cart),
-              title: Text("SALES"),
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text("SALES"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/salespage');
               },
             ),
             ListTile(
-              leading: Icon(Icons.receipt_long),
-              title: Text("RECEIPTS"),
+              leading: const Icon(Icons.receipt_long),
+              title: const Text("RECEIPTS"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/receiptpage');
               },
             ),
             ListTile(
-              leading: Icon(Icons.list),
-              title: Text("INVENTORY"),
+              leading: const Icon(Icons.list),
+              title: const Text("INVENTORY"),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/itemspage');
@@ -295,32 +297,33 @@ class _HomePageState extends State<HomePage> {
               future: _fetchPOSItems(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("No items available."));
+                  return const Center(child: Text("No items available."));
                 }
-                final filteredItems = snapshot.data!.where((item) {
+                final filteredItems = snapshot.data?.where((item) {
                   final matchesCategory = selectedCategory == 'All' || item['category'] == selectedCategory;
                   final matchesSearch = item['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
                   return matchesCategory && matchesSearch;
                 }).toList();
 
                 return GridView.builder(
-                  padding: EdgeInsets.all(8),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 0.75,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
-                  itemCount: filteredItems.length,
+                  itemCount: filteredItems?.length ?? 0,
                   itemBuilder: (context, index) {
-                    final item = filteredItems[index];
+                    final item = filteredItems?[index];
                     return POSItem(
-                      itemName: item['name'],
-                      price: item['price'],
-                      stock: stockQuantities[item['name']] ?? 0,
+                      itemName: item?['name'],
+                      price: item?['price'],
+                      stock: stockQuantities[item?['name']] ?? 0,
+                      imageUrl: item?['image_url']
                     );
                   },
                 );
@@ -337,11 +340,14 @@ class POSItem extends StatelessWidget {
   final String itemName;
   final double price;
   final int stock;
+  final String imageUrl;
 
-  POSItem({
+  const POSItem({
+    super.key,
     required this.itemName,
     required this.price,
     required this.stock,
+    required this.imageUrl
   });
 
   @override
@@ -356,9 +362,14 @@ class POSItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            CachedNetworkImage(
+                imageUrl: imageUrl,
+                placeholder: (context, url) => const CircularProgressIndicator(),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
+            ),
             Text(
               itemName,
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             Text('₱${price.toStringAsFixed(2)}'),

@@ -5,20 +5,21 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 
 class ForecastPage extends StatefulWidget {
+  const ForecastPage({super.key});
+
   @override
-  _ForecastPageState createState() => _ForecastPageState();
+  ForecastPageState createState() => ForecastPageState();
 }
 
-class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderStateMixin {
+class ForecastPageState extends State<ForecastPage> with SingleTickerProviderStateMixin {
   List<double> _monthlySales = [];
   double _forecastedSales = 0.0;
   double _growthRate = 0.0;
-  Map<String, double> _forecastData = {};
+  final Map<String, double> _forecastData = {};
   bool _isLoading = true;
   late AnimationController _animationController;
   late Animation<double> _animation;
   List<MapEntry<String, int>> _topSellingItems = [];
-  Map<String, int> _stockLevels = {};
   List<MapEntry<String, int>> _lowStockItems = [];
   bool _isLoadingStock = true;
 
@@ -153,7 +154,6 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
       lowStockItems.sort((a, b) => a.value.compareTo(b.value));
 
       setState(() {
-        _stockLevels = stockLevels;
         _lowStockItems = lowStockItems;
         _isLoadingStock = false;
       });
@@ -188,7 +188,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sales Forecasting'),
+        title: const Text('Sales Forecasting'),
         backgroundColor: Colors.green.shade700,
         elevation: 0,
       ),
@@ -201,7 +201,7 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
                     scale: _animation,
                     child: Icon(Icons.bar_chart, size: 100, color: Colors.green.shade700),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Text(
                     'Generating your forecast...',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade700),
@@ -215,9 +215,9 @@ class _ForecastPageState extends State<ForecastPage> with SingleTickerProviderSt
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     color: Colors.green.shade700,
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
