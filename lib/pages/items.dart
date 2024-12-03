@@ -59,21 +59,27 @@ class ItemsState extends State<Items> {
 
   Future<void> _updateItem(String itemId, String name, String description,
       double price, String category, int stocks, File? file) async {
-
     final imageRef = _storage.ref('items').child(name);
     String imageUrl = "";
     try {
-      await imageRef.putFile(File(file?.path ?? ""));
-      imageUrl = await imageRef.getDownloadURL();
+      if (file != null) {
+        await imageRef.putFile(file);
+        imageUrl = await imageRef.getDownloadURL();
+      }
 
-      await _firestore.collection('Items').doc(itemId).update({
+      Map<String, dynamic> updateData = {
         'name': name,
         'description': description,
         'category': category,
         'price': price.toString(),
         'stocks': stocks.toString(),
-        'image_url': imageUrl,
-      });
+      };
+
+      if (imageUrl.isNotEmpty) {
+        updateData['image_url'] = imageUrl;
+      }
+
+      await _firestore.collection('Items').doc(itemId).update(updateData);
     } catch (e) {
       log("Error $e");
     }
@@ -617,16 +623,7 @@ class _EditItemDialogState extends State<EditItemDialog> {
                   .toList(),
               decoration: const InputDecoration(labelText: 'Category'),
 
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Description",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14.0,
-                fontWeight: FontWeight.w500
-              )
-            ),
+            ),          
             const SizedBox(height: 10),
             GestureDetector(
               onTap: () {
@@ -697,3 +694,4 @@ class _EditItemDialogState extends State<EditItemDialog> {
     );
   }
 }
+

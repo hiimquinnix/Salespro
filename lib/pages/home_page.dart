@@ -19,7 +19,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final user = FirebaseAuth.instance.currentUser!;
-  List<String> categories = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  List<String> categories = ['All'];
   String selectedCategory = 'All';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -40,6 +42,21 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _fetchCategories() async {
+    try {
+      QuerySnapshot snapshot = await _firestore.collection('Items').get();
+      final Set<String> fetchedCategories = snapshot.docs
+          .map((doc) => doc['category'].toString())
+          .toSet();
+
+      setState(() {
+        categories = ['All', ...fetchedCategories];
+      });
+    } catch (e) {
+      log("Error fetching categories: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,13 +74,6 @@ class _HomePageState extends State<HomePage> {
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text;
-    });
-  }
-
-  void _fetchCategories() async {
-    final snapshot = await FirebaseFirestore.instance.collection('Categories').get();
-    setState(() {
-      categories = ['All'] + snapshot.docs.map((doc) => doc['name'].toString()).toList();
     });
   }
 
@@ -153,7 +163,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-     drawer: Drawer(
+      drawer: Drawer(
         child: Column(
           children: [
             DrawerHeader(
@@ -267,6 +277,34 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: DropdownButton<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      underline: Container(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedCategory = newValue!;
+                        });
+                      },
+                      items: categories.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -275,21 +313,6 @@ class _HomePageState extends State<HomePage> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: selectedCategory,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedCategory = newValue!;
-                    });
-                  },
-                  items: categories.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
                 ),
               ],
             ),
@@ -325,7 +348,7 @@ class _HomePageState extends State<HomePage> {
                       itemName: item?['name'],
                       price: item?['price'],
                       stock: stockQuantities[item?['name']] ?? 0,
-                      imageUrl: item?['image_url']
+                      imageUrl: item?['image_url'],
                     );
                   },
                 );
@@ -337,4 +360,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
